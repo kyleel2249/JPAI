@@ -31,6 +31,11 @@ jobs:
           node-version: "20"
       - working-directory: frontend
         run: npm install
+      - name: Audit frontend dependency tree
+        working-directory: frontend
+        run: |
+          npm audit --json > npm-audit-report.json || true
+          node -e "const a=require('./npm-audit-report.json'); console.log('JPAI_NPM_AUDIT_SUMMARY '+JSON.stringify(a.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(a.vulnerabilities ?? {})) console.log('JPAI_NPM_AUDIT_PACKAGE '+JSON.stringify({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:(v.via ?? []).map(x=>typeof x==='string'?x:{title:x.title,url:x.url,range:x.range})}));"
       - working-directory: frontend
         run: npm run build
       - working-directory: frontend
