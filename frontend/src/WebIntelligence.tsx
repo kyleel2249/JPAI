@@ -21,6 +21,8 @@ type Change = {
 type Version = {
   id: number; title: string; content_hash: string; fetched_at: string; job_id: string;
 };
+type StructuredRecord = Record<string, unknown>;
+type StructuredData = { count: number; items: StructuredRecord[]; trust: string };
 
 const api = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const key = import.meta.env.VITE_JPAI_API_KEY ?? "";
@@ -47,11 +49,13 @@ export default function WebIntelligence() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [changes, setChanges] = useState<Change[]>([]);
   const [versions, setVersions] = useState<Record<number, Version[]>>({});
+  const [structuredData, setStructuredData] = useState<Record<number, StructuredData>>({});
   const [results, setResults] = useState<SearchResult[]>([]);
   const [query, setQuery] = useState("");
   const [stats, setStats] = useState({
     pages_stored: 0, domains_indexed: 0, jobs_total: 0,
     schedules_total: 0, changes_detected: 0, versions_stored: 0,
+    pages_with_structured_data: 0,
   });
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -149,6 +153,15 @@ export default function WebIntelligence() {
     }
   }
 
+  async function loadStructuredData(pageId: number) {
+    try {
+      const data = await request("/api/v1/web-intelligence/pages/" + pageId + "/structured-data");
+      setStructuredData((current) => ({ ...current, [pageId]: data }));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Unable to load structured metadata");
+    }
+  }
+
   async function remember(pageId: number) {
     setBusy(true);
     try {
@@ -191,6 +204,7 @@ export default function WebIntelligence() {
       <article className="metric"><span>DOMAINS INDEXED</span><strong>{stats.domains_indexed}</strong><small>Source domains</small></article>
       <article className="metric"><span>MONITORING PLANS</span><strong>{stats.schedules_total}</strong><small>Persistent schedules</small></article>
       <article className="metric"><span>CHANGES DETECTED</span><strong>{stats.changes_detected}</strong><small>Content-change events</small></article>
+      <article className="metric"><span>STRUCTURED SOURCES</span><strong>{stats.pages_with_structured_data}</strong><small>Pages with JSON-LD metadata</small></article>
     </div>
     <div className="overview-grid">
       <article className="panel">
@@ -273,10 +287,21 @@ export default function WebIntelligence() {
         <a href={page.url} target="_blank" rel="noreferrer">{page.url}</a>
         <div className="task-actions">
           <button className="text-btn" onClick={() => void loadVersions(page.id)}>View version history</button>
+          <button className="text-btn" onClick={() => void loadStructuredData(page.id)}>View structured data</button>
           <button className="text-btn" disabled={busy || !!page.memory_id} onClick={() => void remember(page.id)}>
             {page.memory_id ? "✓ Added to JPAI memory" : "Add source to JPAI memory"}</button>
         </div>
-        {versions[page.id] && <div className="memory-list"><b>Version history ({versions[page.id].length})</b>
+        {structuredData[page.id] && <div className="memory-list">
+          <b>Structured metadata ({structuredData[page.id].count})</b>
+          <small>Schema.org JSON-LD · unverified external metadata</small>
+          {structuredData[page.id].items.map((record, index) => {
+            const types = record["@type"];
+            const typeLabel = Array.isArray(types) ? types.join(", ") : String(types ?? "Structured object");
+            const headline = String(record["headline"] ?? record["name"] ?? record["description"] ?? "No display summary");
+            return <p key={index}><b>{typeLabel}</b> · {headline.slice(0, 240)}</p>;
+          })}
+        </div>}
+                {versions[page.id] && <div className="memory-list"><b>Version history ({versions[page.id].length})</b>
           {versions[page.id].map((version) => <p key={version.id}>
             {new Date(version.fetched_at).toLocaleString()} · {version.title || "Untitled"} · {version.content_hash.slice(0, 20)}…
           </p>)}</div>}
