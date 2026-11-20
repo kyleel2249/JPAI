@@ -172,8 +172,8 @@ def approve_task(task_id: int):
         raise HTTPException(status_code=409, detail="approval_not_required")
     if task["status"] != "queued" or task["approval_status"] != "pending":
         raise HTTPException(status_code=409, detail="task_not_awaiting_approval")
-    store.set_task_status(task_id, "queued", approval_status="approved")
-    store.event(task_id, task["agent_id"], "task.approved", {"approved_via": "explicit_api_action"})
+    if not store.approve_task(task_id):
+        raise HTTPException(status_code=409, detail="task_not_awaiting_approval")
     return store.get_task(task_id)
 
 
@@ -193,7 +193,6 @@ async def run_task(task_id: int):
         raise HTTPException(status_code=409, detail="task_not_runnable")
     if not store.claim_task(task_id):
         raise HTTPException(status_code=409, detail="task_already_claimed_or_not_approved")
-    store.event(task_id, task["agent_id"], "task.started", {"execution_mode": "local_model_analysis_only"})
     service = get_service()
     started = time.perf_counter()
     try:
