@@ -41,6 +41,48 @@ def _resolve_public_address(host: str, port: int) -> str:
     return next(iter(addresses))
 
 
+def parse_robots_rules(body: str, status_code: int):
+    """Parse the applicable robots.txt group; fail closed on server errors."""
+    if status_code == 404:
+        return []
+    if status_code != 200:
+        raise CrawlPolicyError("robots.txt could not be retrieved; crawl denied")
+    groups = []
+    agents = []
+    rules = []
+    for raw_line in body[:100000].splitlines():
+        line = raw_line.split("#", 1)[0].strip()
+        if not line or ":" not in line:
+            continue
+        key, value = [part.strip() for part in line.split(":", 1)]
+        key = key.lower()
+        if key == "user-agent":
+            if rules:
+                groups.append((agents, rules))
+                agents, rules = [], []
+            agents.append(value.lower())
+        elif key in {"allow", "disallow"} and agents and value:
+            rules.append((key == "allow", value))
+    if agents:
+        groups.append((agents, rules))
+    token = "jpai-researchbot"
+    return [
+        rule
+        for group_agents, group_rules in groups
+        if "*" in group_agents or any(token in agent for agent in group_agents)
+        for rule in group_rules
+    ]
+
+
+def robots_path_allowed(path: str, rules) -> bool:
+    """Apply longest-prefix robots rules; Allow wins equal-length ties."""
+    matches = [(len(rule), allowed) for allowed, rule in rules if path.startswith(rule)]
+    if not matches:
+        return True
+    longest = max(length for length, _ in matches)
+    return any(allowed for length, allowed in matches if length == longest)
+
+
 def validate_public_url(url: str) -> str:
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
@@ -504,17 +546,7 @@ class WebCrawler:
             seen = set()
             robots_url = urlunparse((parts.scheme, parts.netloc, "/robots.txt", "", "", ""))
             robots = self._get(robots_url)
-            disallowed = []
-            active = False
-            for line in (robots.text[:100000] if robots.status_code == 200 else "").splitlines():
-                line = line.split("#", 1)[0].strip()
-                if ":" not in line:
-                    continue
-                key, value = [part.strip() for part in line.split(":", 1)]
-                if key.lower() == "user-agent":
-                    active = value == "*" or "JPAI-ResearchBot" in value
-                elif active and key.lower() == "disallow" and value:
-                    disallowed.append(value)
+            robots_rules = parse_robots_rules(robots.text, robots.status_code)
             while queue and pages < job["max_pages"]:
                 url, depth = queue.popleft()
                 url = validate_public_url(url)
@@ -523,7 +555,7 @@ class WebCrawler:
                 if (parsed_url.scheme, parsed_url.hostname, target_port) != origin or url in seen:
                     continue
                 seen.add(url)
-                if any(parsed_url.path.startswith(rule) for rule in disallowed):
+                if not robots_path_allowed(parsed_url.path, robots_rules):
                     continue
                 time.sleep(self.delay_seconds)
                 response = self._get(url)
