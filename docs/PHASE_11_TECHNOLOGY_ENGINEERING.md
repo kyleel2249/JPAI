@@ -15,4 +15,4 @@ This is a governed engineering workflow and evidence ledger. It does not autonom
 - [x] Sequential, fail-closed stage transitions.
 - [x] Evidence-gated verification and release readiness.
 - [x] Input allowlist and regression tests.
-- [ ] GitHub Actions verification pending after commit.
+- [x] GitHub Actions verification: 82 backend tests passed; Ruff passed; frontend build and 4 tests passed; npm audit reported 0 vulnerabilities.\n- [ ] Dedicated frontend workspace remains a follow-on; the backend API is integrated.

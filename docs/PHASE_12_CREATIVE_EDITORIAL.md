@@ -15,4 +15,4 @@ The workbench governs human-authored editorial content and review. It does not c
 - [x] Sequential, fail-closed editorial lifecycle.
 - [x] Source-record, fact-check and publication-approval gates.
 - [x] Audit history and regression tests.
-- [ ] GitHub Actions verification pending after commit.
+- [x] GitHub Actions verification: 82 backend tests passed; Ruff passed; frontend build and 4 tests passed; npm audit reported 0 vulnerabilities.\n- [ ] Dedicated editorial UI remains a follow-on; the backend API is integrated.

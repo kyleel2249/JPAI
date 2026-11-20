@@ -6,5 +6,5 @@
 - [x] Mutations are recorded in durable project event history.
 - [x] Stage progression is sequential and fail-closed.
 - [x] API integration and validation tests added.
-- [ ] CI passes on the resulting main commit.
+- [x] CI passes on the resulting main commit: 82 backend tests, Ruff, frontend production build, 4 frontend tests, and npm audit (0 vulnerabilities).
 - [ ] Frontend workspace integration remains a follow-on item; current delivery exposes the governed API.
