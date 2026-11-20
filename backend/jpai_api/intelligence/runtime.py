@@ -1,6 +1,5 @@
 """Provider-neutral local inference runtime and Ollama adapter."""
 from __future__ import annotations
-import asyncio
 import ipaddress
 import time
 from urllib.parse import urlparse
