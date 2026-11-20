@@ -53,3 +53,28 @@ def test_inference_endpoint_returns_model_metadata(monkeypatch):
     assert response.status_code == 200
     assert response.json()["response"] == "READY"
     assert response.json()["provider"] == "fake"
+
+
+def test_auto_inference_selects_capable_model(monkeypatch):
+    monkeypatch.setattr(routes, "get_service", lambda: FakeService())
+    response = client.post("/api/v1/intelligence/infer/auto", json={"capability": "chat", "prompt": "hello"})
+    assert response.status_code == 200
+    assert response.json()["model"] == "local-chat"
+
+
+def test_parallel_model_comparison_reports_each_result(monkeypatch):
+    monkeypatch.setattr(routes, "get_service", lambda: FakeService())
+    response = client.post("/api/v1/intelligence/models/compare", json={
+        "models": ["local-chat", "not-discovered"], "prompt": "Compare this prompt"
+    })
+    assert response.status_code == 200
+    assert response.json()["results"][0]["status"] == "completed"
+    assert response.json()["results"][1]["status"] == "unavailable"
+
+
+def test_model_comparison_rejects_duplicate_models(monkeypatch):
+    monkeypatch.setattr(routes, "get_service", lambda: FakeService())
+    response = client.post("/api/v1/intelligence/models/compare", json={
+        "models": ["local-chat", "local-chat"], "prompt": "hello"
+    })
+    assert response.status_code == 422
