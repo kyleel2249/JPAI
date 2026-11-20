@@ -2,7 +2,7 @@
 from __future__ import annotations
 import hashlib, ipaddress, json, re, socket, sqlite3, time, uuid
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urldefrag, urljoin, urlparse, urlunparse
@@ -88,13 +88,13 @@ class CrawlerStore:
         db=sqlite3.connect(self.path,timeout=15); db.row_factory=sqlite3.Row
         db.execute("PRAGMA journal_mode=WAL"); db.execute("PRAGMA foreign_keys=ON"); return db
     def create_job(self,seed_url,max_pages):
-        job_id=uuid.uuid4().hex; now=datetime.now(timezone.utc).isoformat()
+        job_id=uuid.uuid4().hex; now=datetime.now(UTC).isoformat()
         with self._connect() as db:
             db.execute("INSERT INTO crawl_jobs(id,seed_url,status,max_pages,created_at,updated_at) VALUES(?,?,?,?,?,?)",
                        (job_id,seed_url,"queued",max_pages,now,now))
         return self.get_job(job_id)
     def update_job(self,job_id,status,pages=None,error=None):
-        now=datetime.now(timezone.utc).isoformat()
+        now=datetime.now(UTC).isoformat()
         with self._connect() as db:
             if pages is None: db.execute("UPDATE crawl_jobs SET status=?,error=?,updated_at=? WHERE id=?",(status,error,now,job_id))
             else: db.execute("UPDATE crawl_jobs SET status=?,pages_crawled=?,error=?,updated_at=? WHERE id=?",(status,pages,error,now,job_id))
@@ -104,7 +104,7 @@ class CrawlerStore:
     def list_jobs(self,limit=30):
         with self._connect() as db: return [dict(r) for r in db.execute("SELECT * FROM crawl_jobs ORDER BY created_at DESC LIMIT ?",(limit,))]
     def save_page(self,job_id,url,domain,parsed,status_code,content_type,content_hash):
-        now=datetime.now(timezone.utc).isoformat()
+        now=datetime.now(UTC).isoformat()
         title=" ".join(parsed.title_parts)[:500]
         content=re.sub(r"\s+"," "," ".join(parsed.text_parts)).strip()[:200000]
         description=parsed.meta.get("description",parsed.meta.get("og:description",""))[:2000]
