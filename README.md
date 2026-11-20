@@ -19,6 +19,8 @@ Local-first personal, professional and enterprise intelligence platform.
 - Dashboard workspaces for intelligence, memory, agents, quality governance, research, creative, engineering, business, finance, automation, security and system monitoring.
 - Evidence-gated continuous improvement cycles and sequential issue resolution with root-cause, corrective-action, test and verification records.
 - Quality audit trail persisted in the same local SQLite database as JPAI's other operational records.
+- Governed Web Intelligence crawler with same-origin discovery, robots.txt handling, bounded HTML extraction, SHA-256 source fingerprints, persistent crawl jobs and local search.
+- Explicit research-to-memory ingestion so selected crawled pages become provenance-labelled, unverified reference memories available to specialist retrieval.
 
 ## Local development
 
@@ -43,7 +45,7 @@ npm run dev
 Ollama must be started separately. The default runtime endpoint is http://127.0.0.1:11434.
 JPAI core and persistent memory do not require external API keys. Local memory defaults to data/jpai.sqlite3; override with JPAI_DATABASE_PATH.
 
-Memory search currently uses weighted lexical relevance, not embeddings. Knowledge-graph entities and relations are locally persisted in SQLite. Model and specialist routing use explainable operational heuristics, not a claimed measure of intelligence or guaranteed success.
+Web Intelligence currently collects public HTML only. It uses same-origin scope, robots.txt checks, bounded page/depth/size/time limits and does not execute JavaScript. Crawled content is external and unverified; explicit ingestion preserves source URL, timestamp and content hash. Memory and web-page search currently use weighted lexical relevance, not embeddings. Knowledge-graph entities and relations are locally persisted in SQLite. Model and specialist routing use explainable operational heuristics, not a claimed measure of intelligence or guaranteed success.
 
 ## Documentation
 
@@ -57,6 +59,7 @@ Memory search currently uses weighted lexical relevance, not embeddings. Knowled
 - [Phase 7 acceptance](docs/PHASE_7_ACCEPTANCE.md)
 - [Quality governance and continuous improvement](docs/QUALITY_GOVERNANCE.md)
 - [Quality governance acceptance](docs/QUALITY_GOVERNANCE_ACCEPTANCE.md)
+- [Web Intelligence & Research Engine](docs/WEB_INTELLIGENCE.md)
 - [Professional specialisation catalogue](docs/PROFESSIONAL_SPECIALISATIONS.md)
 
 ## API gateway configuration
