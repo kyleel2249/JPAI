@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from jpai_api.config import get_settings
+from jpai_api.routes.agents import router as agents_router
 from jpai_api.middleware.gateway import GatewayMiddleware
 from jpai_api.routes.gateway import router as gateway_router
 from jpai_api.routes.health import router as health_router
@@ -35,6 +36,7 @@ app.include_router(intelligence_router, prefix=settings.api_prefix)
 app.include_router(memory_router, prefix=settings.api_prefix)
 app.include_router(routing_router, prefix=settings.api_prefix)
 app.include_router(gateway_router, prefix=settings.api_prefix)
+app.include_router(agents_router, prefix=settings.api_prefix)
 
 
 @app.get("/", tags=["system"])
