@@ -137,6 +137,17 @@ class AgentStore:
                 rows = db.execute("SELECT * FROM agent_tasks ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
             return [self._task(row) for row in rows]
 
+    def claim_task(self, task_id):
+        """Atomically claim a queued or retryable task exactly once."""
+        with self._connect() as db:
+            cur = db.execute(
+                """UPDATE agent_tasks SET status='running',updated_at=CURRENT_TIMESTAMP
+                WHERE id=? AND status IN ('queued','failed')
+                AND (requires_approval=0 OR approval_status='approved')""",
+                (task_id,),
+            )
+            return cur.rowcount == 1
+
     def set_task_status(self, task_id, status, result=None, error_code=None, approval_status=None):
         with self._connect() as db:
             fields = ["status=?", "updated_at=CURRENT_TIMESTAMP"]
