@@ -265,7 +265,7 @@ export default function WebIntelligence() {
       <article className="metric"><span>MONITORING PLANS</span><strong>{stats.schedules_total}</strong><small>Persistent schedules</small></article>
       <article className="metric"><span>CHANGES DETECTED</span><strong>{stats.changes_detected}</strong><small>Content-change events</small></article>
       <article className="metric"><span>STRUCTURED SOURCES</span><strong>{stats.pages_with_structured_data}</strong><small>Pages with JSON-LD metadata</small></article>
-      <article className="metric"><span>DOCUMENTS INDEXED</span><strong>{stats.documents_stored}</strong><small>{stats.document_chars_indexed.toLocaleString()} extracted characters</small></article>
+      <article className="metric"><span>DOCUMENTS INDEXED</span><strong>{stats.documents_stored ?? 0}</strong><small>{(stats.document_chars_indexed ?? 0).toLocaleString()} extracted characters</small></article>
     </div>
     <div className="overview-grid">
       <article className="panel">
