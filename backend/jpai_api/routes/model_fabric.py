@@ -54,10 +54,10 @@ class InferRequest(BaseModel):
 
 
 class CouncilRequest(BaseModel):
-    prompt: str = Field(min_length=10, max_length=100_000)
+    prompt: str = Field(min_length=10, max_length=1_000_000)
     agent_ids: list[str] = Field(min_length=2, max_length=32)
     reasoning_effort: str = "high"
-    max_output_tokens: int = Field(default=3000, ge=256, le=12000)
+    max_output_tokens: int = Field(default=8000, ge=256, le=128000)
     include_shared_memory: bool = True
     verification_pass: bool = True
     peer_review_pass: bool = True
@@ -224,7 +224,7 @@ async def council(req: CouncilRequest):
             async def review(i, item):
                 model = "jpai-6.2-pro" if i % 2 == 0 else "jpai-6.2-ultra"
                 prompt = "Critically peer-review the shared findings. Find contradictions, unsupported claims, missing evidence and risks. Do not agree by default.\n\nTASK:\n" + req.prompt + "\n\nFINDINGS:\n" + workspace
-                async with sem: answer = await fabric.infer(model, prompt, "You are an independent JPAI peer reviewer. Be rigorous.", "high", min(req.max_output_tokens, 3000))
+                async with sem: answer = await fabric.infer(model, prompt, "You are an independent JPAI peer reviewer. Be rigorous.", "high", req.max_output_tokens)
                 saved = await asyncio.to_thread(memory.create_memory, "shared_agent_workspace", item["agent_name"] + " · peer review",
                     answer["response"][:20000], ["peer-review", "unverified", model, run_id], "jpai_model_fabric", "episodic", 0.5,
                     {"run_id": run_id, "agent_id": item["agent_id"], "model": model})
@@ -240,14 +240,14 @@ async def council(req: CouncilRequest):
             body += "\n\nPEER REVIEWS:\n" + "\n\n".join(x.get("agent_name", "Reviewer") + ":\n" + x.get("response", "Review failed") for x in reviews)
             try:
                 synthesis = await fabric.infer("jpai-6.2-ultra", "Synthesize evidence, preserve disagreements, label uncertainty and prioritize recommendations.\n\n" + body,
-                    "You are JPAI Ultra, principal synthesis reviewer.", "high", 6000)
+                    "You are JPAI Ultra, principal synthesis reviewer.", "high", req.max_output_tokens)
                 saved = await asyncio.to_thread(memory.create_memory, "shared_agent_workspace", "JPAI council synthesis",
                     synthesis["response"][:30000], ["agent-synthesis", "unverified", run_id], "jpai_model_fabric", "episodic", 0.6, {"run_id": run_id})
                 synthesis["memory_id"] = saved["id"]
                 ledger.checkpoint(run_id, "ultra_synthesis", "completed", {"memory_id": saved["id"]})
                 if req.verification_pass:
                     verification = await fabric.infer("jpai-6.2-pro", "Independently audit synthesis for unsupported claims, contradictions and missing caveats.\n\n" + synthesis["response"] + "\n\nSOURCE FINDINGS:\n" + body,
-                        "You are JPAI Pro, independent quality auditor.", "high", 4000)
+                        "You are JPAI Pro, independent quality auditor.", "high", req.max_output_tokens)
                     saved = await asyncio.to_thread(memory.create_memory, "shared_agent_workspace", "JPAI independent verification",
                         verification["response"][:20000], ["verification", "unverified", run_id], "jpai_model_fabric", "episodic", 0.55, {"run_id": run_id})
                     verification["memory_id"] = saved["id"]
