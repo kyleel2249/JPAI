@@ -267,3 +267,75 @@ def test_robots_allow_rule_overrides_less_specific_disallow():
     assert robots_path_allowed("/public", rules)
     assert not robots_path_allowed("/private/account", rules)
     assert robots_path_allowed("/private/public/report", rules)
+
+
+def _make_docx(text):
+    import io
+    import zipfile
+
+    buffer = io.BytesIO()
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:body><w:p><w:r><w:t>' + text + '</w:t></w:r></w:p></w:body></w:document>'
+    )
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("word/document.xml", xml)
+    return buffer.getvalue()
+
+
+def test_document_text_extraction_and_sha256():
+    from jpai_api.research.documents import extract_document
+
+    result = extract_document("market-report.txt", b"Revenue outlook for next quarter")
+    assert result["file_type"] == "txt"
+    assert result["text"] == "Revenue outlook for next quarter"
+    assert len(result["content_hash"]) == 64
+    assert result["extracted_chars"] == len(result["text"])
+
+
+def test_docx_extraction_reads_paragraph_text():
+    from jpai_api.research.documents import extract_document
+
+    result = extract_document("briefing.docx", _make_docx("Regional infrastructure outlook"))
+    assert result["text"] == "Regional infrastructure outlook"
+
+
+def test_document_extraction_rejects_unsupported_and_mismatched_files():
+    from jpai_api.research.documents import DocumentExtractionError, extract_document
+
+    with pytest.raises(DocumentExtractionError):
+        extract_document("payload.exe", b"not a document")
+    with pytest.raises(DocumentExtractionError):
+        extract_document("report.pdf", b"not a PDF")
+    with pytest.raises(DocumentExtractionError):
+        extract_document("report.docx", b"not a zip archive")
+
+
+def test_document_extraction_enforces_upload_size_and_utf8():
+    from jpai_api.research.documents import (
+        MAX_DOCUMENT_BYTES,
+        DocumentExtractionError,
+        extract_document,
+    )
+
+    with pytest.raises(DocumentExtractionError):
+        extract_document("large.txt", b"x" * (MAX_DOCUMENT_BYTES + 1))
+    with pytest.raises(DocumentExtractionError):
+        extract_document("invalid.txt", b"\\xff\\xfe")
+
+
+def test_document_store_persistence_deduplication_and_search(tmp_path):
+    from jpai_api.research.documents import DocumentStore, extract_document
+
+    store = DocumentStore(str(tmp_path / "documents.sqlite3"))
+    payload = b"Central bank policy and inflation research"
+    document = extract_document("policy.txt", payload)
+    first = store.save(document)
+    duplicate = store.save(document)
+    assert first["id"] == duplicate["id"]
+    assert store.stats()["documents_stored"] == 1
+    assert store.get(first["id"], include_content=True)["content"] == document["text"]
+    results = store.search("inflation policy")
+    assert results[0]["id"] == first["id"]
+    assert "content" not in results[0]
