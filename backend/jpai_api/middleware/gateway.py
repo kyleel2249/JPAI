@@ -83,6 +83,39 @@ class GatewayMiddleware:
                 await self._json_error(send, 401, "api_authentication_required", request_id)
                 return
 
+        # Apply admission control before receiving request bodies so rejected clients
+        # cannot consume the body-buffering budget repeatedly.
+        client = scope.get("client")
+        client_key = client[0] if client else "unknown"
+        now = self.clock()
+        limited = False
+        retry_after = 60
+
+        async with self._lock:
+            hits = self._hits[client_key]
+            while hits and now - hits[0] >= 60:
+                hits.popleft()
+            if len(hits) >= self.limit:
+                limited = True
+                retry_after = max(1, math.ceil(60 - (now - hits[0])))
+                remaining = 0
+            else:
+                hits.append(now)
+                remaining = max(0, self.limit - len(hits))
+            if len(self._hits) > 10_000:
+                stale = [key for key, values in self._hits.items() if not values or now - values[-1] >= 60]
+                for key in stale:
+                    self._hits.pop(key, None)
+
+        if limited:
+            await self._json_error(
+                send, 429, "rate_limit_exceeded", request_id,
+                [(b"retry-after", str(retry_after).encode()),
+                 (b"x-ratelimit-limit", str(self.limit).encode()),
+                 (b"x-ratelimit-remaining", b"0")],
+            )
+            return
+
         declared_length = headers.get(b"content-length")
         if declared_length:
             try:
@@ -108,36 +141,6 @@ class GatewayMiddleware:
                 return {"type": "http.request", "body": body, "more_body": False}
             return {"type": "http.request", "body": b"", "more_body": False}
 
-        client = scope.get("client")
-        client_key = client[0] if client else "unknown"
-        now = self.clock()
-        limited = False
-        retry_after = 60
-
-        async with self._lock:
-            hits = self._hits[client_key]
-            while hits and now - hits[0] >= 60:
-                hits.popleft()
-            if len(hits) >= self.limit:
-                limited = True
-                retry_after = max(1, math.ceil(60 - (now - hits[0])))
-            else:
-                hits.append(now)
-            if len(self._hits) > 10_000:
-                stale = [key for key, values in self._hits.items() if not values or now - values[-1] >= 60]
-                for key in stale:
-                    self._hits.pop(key, None)
-
-        if limited:
-            await self._json_error(
-                send, 429, "rate_limit_exceeded", request_id,
-                [(b"retry-after", str(retry_after).encode()),
-                 (b"x-ratelimit-limit", str(self.limit).encode()),
-                 (b"x-ratelimit-remaining", b"0")],
-            )
-            return
-
-        remaining = max(0, self.limit - len(self._hits[client_key]))
 
         async def send_with_headers(message):
             if message["type"] == "http.response.start":
