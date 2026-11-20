@@ -310,7 +310,7 @@ class CrawlerStore:
         description = parsed.meta.get("description", parsed.meta.get("og:description", ""))[:2000]
         # Fingerprint extracted, normalized content rather than volatile HTML markup.
         normalized_hash = hashlib.sha256(
-            (title + "\\n" + description + "\\n" + content).encode("utf-8")
+            (title + "\n" + description + "\n" + content).encode("utf-8")
         ).hexdigest()
         with self._connect() as db:
             old = db.execute(
