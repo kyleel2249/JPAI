@@ -73,7 +73,7 @@ class GatewayMiddleware:
         raw_id = headers.get(b"x-request-id", b"").decode("ascii", "ignore")[:64]
         request_id = raw_id if raw_id and all(c.isalnum() or c in "-_." for c in raw_id) else uuid.uuid4().hex
         path = scope.get("path", "")
-        protected = path.startswith("/api/v1/") and path not in {
+        protected = scope.get("method") != "OPTIONS" and path.startswith("/api/v1/") and path not in {
             "/api/v1/health", "/api/v1/gateway/status",
         }
 
