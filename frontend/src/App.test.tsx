@@ -1,15 +1,30 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import App from "./App";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-describe("JPAI application shell", () => {
-  it("renders the product identity and local-first capabilities", () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ status: "ok", service: "JPAI", environment: "test", mode: "local-first" }) }));
+describe("JPAI command centre", () => {
+  it("renders the product identity and institutional overview", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: "ok", service: "JPAI", environment: "test", mode: "local-first" }),
+    }));
     render(<App />);
     expect(screen.getByRole("heading", { name: /intelligence, orchestrated\./i })).toBeTruthy();
-    expect(screen.getByText(/local-first core/i)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /operational overview/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /intelligence/i })).toBeTruthy();
+  });
+
+  it("opens the persistent memory workspace", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: "ok", service: "JPAI", environment: "test", mode: "local-first" }),
+    }));
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /^Memory/ }));
+    expect(screen.getByRole("heading", { name: /memory & knowledge/i })).toBeTruthy();
+    expect(screen.getByText(/capture a memory/i)).toBeTruthy();
   });
 });
