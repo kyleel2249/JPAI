@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     model_timeout_seconds: float = 90.0
     gateway_requests_per_minute: int = 60
-    gateway_max_request_bytes: int = 1_048_576
+    gateway_max_request_bytes: int = 22_020_096
     gateway_api_key: str | None = None
 
     model_config = SettingsConfigDict(env_prefix="JPAI_", env_file=".env", extra="ignore")
