@@ -1,9 +1,10 @@
 """Local intelligence API routes."""
+import asyncio
 import statistics
 from fastapi import APIRouter, HTTPException
 from jpai_api.config import get_settings
 from jpai_api.intelligence.runtime import LocalIntelligenceService, ModelNotFound, OllamaRuntime, RuntimeUnavailable
-from jpai_api.intelligence.schemas import BenchmarkRequest, InferenceRequest, InferenceResponse, ModelSelectionRequest
+from jpai_api.intelligence.schemas import (AutoInferenceRequest, BenchmarkRequest, InferenceRequest,\n    InferenceResponse, ModelComparisonRequest, ModelSelectionRequest)
 
 router = APIRouter(prefix="/intelligence", tags=["local-intelligence"])
 
@@ -75,5 +76,44 @@ async def benchmark(request: BenchmarkRequest):
             "mean": round(statistics.mean(runs), 2)}}
     except ModelNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.post("/infer/auto", response_model=InferenceResponse)
+async def infer_auto(request: AutoInferenceRequest):
+    service = get_service()
+    try:
+        await service.discover()
+        selected = await service.select(request.capability, request.preferred_provider, request.minimum_context)
+        if selected is None:
+            raise HTTPException(status_code=404, detail="No local model satisfies the requested capability")
+        return InferenceResponse(**await service.infer(selected.id, request.prompt, request.system, request.temperature))
+    except ModelNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.post("/models/compare")
+async def compare_models(request: ModelComparisonRequest):
+    if len(set(request.models)) != len(request.models):
+        raise HTTPException(status_code=422, detail="Model list must not contain duplicates")
+    service = get_service()
+    try:
+        await service.discover()
+        tasks = [service.infer(model, request.prompt, request.system, request.temperature) for model in request.models]
+        outcomes = await asyncio.gather(*tasks, return_exceptions=True)
+        results = []
+        for model, outcome in zip(request.models, outcomes):
+            if isinstance(outcome, ModelNotFound):
+                results.append({"model": model, "status": "unavailable", "error": "model_not_discovered"})
+            elif isinstance(outcome, RuntimeUnavailable):
+                results.append({"model": model, "status": "failed", "error": "runtime_unavailable"})
+            elif isinstance(outcome, Exception):
+                results.append({"model": model, "status": "failed", "error": "inference_failed"})
+            else:
+                results.append({"model": model, "status": "completed", **outcome})
+        return {"comparison_count": len(results), "results": results}
     except RuntimeUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
