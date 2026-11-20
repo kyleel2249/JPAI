@@ -183,7 +183,8 @@ async def run_task(task_id: int):
         raise HTTPException(status_code=403, detail="explicit_human_approval_required")
     if task["status"] not in {"queued", "failed"}:
         raise HTTPException(status_code=409, detail="task_not_runnable")
-    store.set_task_status(task_id, "running", error_code=None)
+    if not store.claim_task(task_id):
+        raise HTTPException(status_code=409, detail="task_already_claimed_or_not_approved")
     store.event(task_id, task["agent_id"], "task.started", {"execution_mode": "local_model_analysis_only"})
     service = get_service()
     started = time.perf_counter()
