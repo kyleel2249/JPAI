@@ -9,7 +9,7 @@ describe("JPAI application shell", () => {
   it("renders the product identity and local-first capabilities", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ status: "ok", service: "JPAI", environment: "test", mode: "local-first" }) }));
     render(<App />);
-    expect(screen.getByRole("heading", { name: /intelligence/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /intelligence, orchestrated\./i })).toBeTruthy();
     expect(screen.getByText(/local-first core/i)).toBeTruthy();
   });
 });
