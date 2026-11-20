@@ -16,6 +16,8 @@
 - `POST /api/v1/intelligence/models/discover` — refresh local model catalogue.
 - `POST /api/v1/intelligence/models/select` — select a model by capability/provider/context constraint.
 - `POST /api/v1/intelligence/infer` — local text inference.
+- `POST /api/v1/intelligence/infer/auto` — discover and select a compatible model, then infer.
+- `POST /api/v1/intelligence/models/compare` — compare up to five local models with at most two simultaneous inference calls.
 - `POST /api/v1/intelligence/benchmark` — bounded latency benchmark.
 
 ## Configuration
