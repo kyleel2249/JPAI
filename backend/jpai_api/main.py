@@ -17,6 +17,7 @@ from jpai_api.routes.memory import router as memory_router
 from jpai_api.routes.quality import router as quality_router
 from jpai_api.routes.routing import router as routing_router
 from jpai_api.routes.web_intelligence import get_crawler, router as web_intelligence_router
+from jpai_api.routes.workbenches import router as workbenches_router
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ settings = get_settings()
 app = FastAPI(
     lifespan=lifespan,
     title=settings.app_name,
-    version="0.4.0",
+    version="0.5.0",
     description="Local-first personal, professional and enterprise intelligence platform",
 )
 app.add_middleware(
@@ -73,6 +74,7 @@ app.include_router(routing_router, prefix=settings.api_prefix)
 app.include_router(gateway_router, prefix=settings.api_prefix)
 app.include_router(agents_router, prefix=settings.api_prefix)
 app.include_router(web_intelligence_router, prefix=settings.api_prefix)
+app.include_router(workbenches_router, prefix=settings.api_prefix)
 
 
 @app.get("/", tags=["system"])
