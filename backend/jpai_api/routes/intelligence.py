@@ -46,7 +46,7 @@ async def select_model(request: ModelSelectionRequest):
         selected = await service.select(request.capability, request.preferred_provider, request.minimum_context)
         if selected is None:
             raise HTTPException(status_code=404, detail="No discovered local model satisfies the requested capability")
-        return {"selected": selected.model_dump(), "selection_reason": "capability and availability match"}
+        return {"selected": selected.model_dump(), "selection_reason": "deterministic eligible capability match"}
     except RuntimeUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
