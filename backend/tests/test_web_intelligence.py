@@ -8,6 +8,8 @@ from jpai_api.research.crawler import (
     CrawlPolicyError,
     CrawlerStore,
     PageExtractor,
+    parse_robots_rules,
+    robots_path_allowed,
     validate_public_url,
 )
 
@@ -206,3 +208,20 @@ def test_http_connection_uses_the_pinned_public_ip(monkeypatch):
     connection.connect()
     connection.close()
     assert calls == [(("93.184.216.34", 80), 15)]
+
+
+
+def test_robots_txt_fails_closed_on_server_errors():
+    with pytest.raises(CrawlPolicyError):
+        parse_robots_rules("", 503)
+    assert parse_robots_rules("", 404) == []
+
+
+def test_robots_allow_rule_overrides_less_specific_disallow():
+    rules = parse_robots_rules(
+        "User-agent: *\nDisallow: /private\nAllow: /private/public\n",
+        200,
+    )
+    assert robots_path_allowed("/public", rules)
+    assert not robots_path_allowed("/private/account", rules)
+    assert robots_path_allowed("/private/public/report", rules)
