@@ -71,3 +71,31 @@ def test_quality_store_uses_existing_local_database_and_preserves_records(tmp_pa
     first.create_issue("A local issue", "A detailed description of the issue.", "core", "low")
     second = QualityStore(path)
     assert len(second.list_issues()) == 1
+
+
+
+def test_concurrent_cycle_advancement_is_claimed_once(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    store = QualityStore(str(tmp_path / "concurrent.db"))
+    cycle = store.create_cycle(
+        "Concurrent transition",
+        "Validate serialized stage transitions.",
+        "A baseline exists and the Build stage has been recorded.",
+    )
+    barrier = Barrier(2)
+
+    def advance():
+        barrier.wait()
+        return store.advance_cycle(
+            cycle["id"], "reassess", "Concurrent reassessment evidence was recorded.",
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(pool.map(lambda _: advance(), range(2)))
+
+    assert sum(item is not None for item, _ in outcomes) == 1
+    assert sum(error == "cycle_stage_out_of_order" for _, error in outcomes) == 1
+    events = store.events("cycle", cycle["id"])
+    assert sum(event["stage"] == "reassess" for event in events) == 1
