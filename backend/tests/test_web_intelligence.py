@@ -160,3 +160,26 @@ def test_legacy_page_table_is_migrated_without_data_loss(tmp_path):
     assert store.get_page(1)["url"] == "https://example.com"
     assert "schedule_id" in store.get_job("old")
     assert "memory_id" in store.get_page(1)
+
+
+
+def test_scheduler_creates_and_executes_due_job(tmp_path, monkeypatch):
+    from jpai_api.research.crawler import WebCrawler
+
+    store = CrawlerStore(str(tmp_path / "scheduler.sqlite3"))
+    schedule = store.create_schedule("https://example.com", 60, 4)
+    crawler = WebCrawler(store)
+    calls = []
+
+    def fake_run(job_id):
+        calls.append(job_id)
+        store.update_job(job_id, "completed", 0)
+
+    monkeypatch.setattr(crawler, "run", fake_run)
+    result = crawler.run_due_schedules()
+    assert len(result) == 1
+    assert calls == [result[0]["job_id"]]
+    job = store.get_job(result[0]["job_id"])
+    assert job["schedule_id"] == schedule["id"]
+    assert job["status"] == "completed"
+    assert store.get_schedule(schedule["id"])["last_job_id"] == job["id"]
