@@ -53,6 +53,8 @@ Memory search currently uses weighted lexical relevance, not embeddings. Knowled
 - [Phase 4 — multi-agent orchestration](docs/PHASE_4_MULTI_AGENT_ORCHESTRATION.md)
 - [Phase 5 — memory and knowledge infrastructure](docs/PHASE_5_MEMORY_KNOWLEDGE_INFRASTRUCTURE.md)
 - [Phase 6 — professional intelligence registry](docs/PHASE_6_PROFESSIONAL_INTELLIGENCE_REGISTRY.md)
+- [Phase 7 — quality governance](docs/PHASE_7_QUALITY_GOVERNANCE.md)
+- [Phase 7 acceptance](docs/PHASE_7_ACCEPTANCE.md)
 - [Quality governance and continuous improvement](docs/QUALITY_GOVERNANCE.md)
 - [Quality governance acceptance](docs/QUALITY_GOVERNANCE_ACCEPTANCE.md)
 - [Professional specialisation catalogue](docs/PROFESSIONAL_SPECIALISATIONS.md)
