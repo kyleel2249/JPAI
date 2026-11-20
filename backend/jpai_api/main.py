@@ -9,6 +9,7 @@ from jpai_api.routes.gateway import router as gateway_router
 from jpai_api.routes.health import router as health_router
 from jpai_api.routes.intelligence import router as intelligence_router
 from jpai_api.routes.memory import router as memory_router
+from jpai_api.routes.quality import router as quality_router
 from jpai_api.routes.routing import router as routing_router
 
 settings = get_settings()
@@ -34,6 +35,7 @@ app.add_middleware(
 app.include_router(health_router, prefix=settings.api_prefix)
 app.include_router(intelligence_router, prefix=settings.api_prefix)
 app.include_router(memory_router, prefix=settings.api_prefix)
+app.include_router(quality_router, prefix=settings.api_prefix)
 app.include_router(routing_router, prefix=settings.api_prefix)
 app.include_router(gateway_router, prefix=settings.api_prefix)
 app.include_router(agents_router, prefix=settings.api_prefix)
