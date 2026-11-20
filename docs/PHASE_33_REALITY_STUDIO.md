@@ -9,7 +9,7 @@ Reality Studio establishes the governed media-intake and production-planning fou
 - Audio defaults to lossless 24-bit WAV at 48 kHz; 96 kHz is a supported target profile. Audio has sample rate/bit depth, not pixel resolution.
 
 ## Implemented in this phase
-- Local media asset intake with extension/category validation, random storage identifiers, SHA-256 provenance hashes and a configurable 500 MB upload ceiling.
+- Local media asset intake with extension/category validation, random storage identifiers, SHA-256 provenance hashes and a 20 MB upload ceiling (aligned with the current API gateway body limit; resumable large-file upload remains future work).
 - Persistent SQLite media asset and job registries.
 - Production job planning for extract, reconstruct, enhance, transcode, audio_restore and image_rebuild workflows.
 - Explicit output specifications, source-ownership/authorization confirmation, speaker-voice authorization for voice cloning, mandatory provenance and human-review metadata.
