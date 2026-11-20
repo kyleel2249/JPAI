@@ -130,7 +130,8 @@ def status():
     return {
         "provider": "openai", "configured": fabric.configured,
         "model_count": len(MODEL_SPECS),
-        "parallel_limit": get_settings().model_fabric_max_concurrency,\n        "max_council_agents": 32,
+        "parallel_limit": get_settings().model_fabric_max_concurrency,
+        "max_council_agents": 32,
         "shared_memory": "local_sqlite",
         "durable_orchestration": "sqlite_run_ledger_and_checkpoints",
         "peer_review": "parallel_second_pass",
