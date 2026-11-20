@@ -122,3 +122,6 @@
 @media(max-width:1250px){.command-main-grid{grid-template-columns:1.4fr 1fr}.memory-panel{grid-column:1/-1}.command-lower-grid{grid-template-columns:1fr 1fr}.system-panel{grid-column:1/-1}}
 @media(max-width:900px){.model-trio{grid-template-columns:1fr}.ai-model-card{min-height:145px}.command-main-grid,.command-lower-grid{grid-template-columns:1fr}.memory-panel,.system-panel{grid-column:auto}.quick-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.command-head{align-items:flex-start;flex-direction:column}.command-status{font-size:10px}.command-panel{padding:14px}.ai-model-card{grid-template-columns:66px 1fr;padding:13px}.ai-orb{width:58px;height:58px;font-size:29px}.ai-model-copy h3{font-size:16px}.execution-stages{gap:2px}.execution-stage b{font-size:8px}.execution-stage small{font-size:8px}.execution-stage:not(:last-child):after{left:calc(50% + 14px);width:calc(100% - 23px)}.execution-stats{gap:8px}.quick-grid{gap:6px}.quick-grid button{padding:11px 3px}.command-footer{flex-direction:column;font-size:8px}}
+
+/* Electric-blue infinity identity mark */
+.brand-mark{border:1px solid #168cff;border-radius:50%;color:#35dfff;font:800 33px Manrope;background:radial-gradient(circle,#0b5ca955,#08182a 72%);box-shadow:0 0 19px #078fff55,inset 0 0 14px #078fff33;text-shadow:0 0 12px #23cfff}
