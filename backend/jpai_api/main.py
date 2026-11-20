@@ -21,6 +21,7 @@ from jpai_api.routes.quality import router as quality_router
 from jpai_api.routes.routing import router as routing_router
 from jpai_api.routes.web_intelligence import get_crawler, router as web_intelligence_router
 from jpai_api.routes.workbenches import router as workbenches_router
+from jpai_api.routes.media_studio import router as media_studio_router
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,7 @@ app.include_router(gateway_router, prefix=settings.api_prefix)
 app.include_router(agents_router, prefix=settings.api_prefix)
 app.include_router(web_intelligence_router, prefix=settings.api_prefix)
 app.include_router(workbenches_router, prefix=settings.api_prefix)
+app.include_router(media_studio_router, prefix=settings.api_prefix)
 app.include_router(directorates_router, prefix=settings.api_prefix)
 app.include_router(platform_operations_router, prefix=settings.api_prefix)
 
