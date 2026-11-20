@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from jpai_api.intelligence.model_fabric import MODEL_SPECS,ModelFabricError,OpenAIResponsesRuntime,ProviderNotConfigured
 from jpai_api.main import app
+from jpai_api.middleware.gateway import GatewayMiddleware
 from jpai_api.routes import model_fabric as routes
 client=TestClient(app)
 def test_catalog_models_and_limits():
@@ -24,9 +25,21 @@ async def test_policy_rejects_invalid_model_effort_and_tool():
 def test_cached_token_cost_estimate():
  usage={"input_tokens":1000,"output_tokens":500,"input_tokens_details":{"cached_tokens":400}}
  assert OpenAIResponsesRuntime.cost("gpt-6.2-sol",usage)==pytest.approx((600*2+400*.1+500*10)/1000000)
+def _reset_gateway_rate_limit():
+ layer=app.middleware_stack
+ for _ in range(12):
+  if isinstance(layer,GatewayMiddleware):
+   layer._hits.clear()
+   return
+  layer=getattr(layer,"app",None)
+  if layer is None:
+   return
+
 def test_catalog_status_and_missing_key_routes(monkeypatch):
+ _reset_gateway_rate_limit()
  monkeypatch.setattr(routes,"get_fabric",lambda:OpenAIResponsesRuntime(None))
  assert client.get("/api/v1/model-fabric/status").json()["configured"] is False
  assert client.get("/api/v1/model-fabric/catalog").json()["count"]==3
  r=client.post("/api/v1/model-fabric/infer",json={"prompt":"Explain JPAI"})
  assert r.status_code==503 and r.json()["detail"]=="openai_provider_not_configured"
+ _reset_gateway_rate_limit()
