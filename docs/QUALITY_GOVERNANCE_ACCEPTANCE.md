@@ -9,6 +9,6 @@
 - [x] Dashboard workspace for quality cycles, issue register and event trail.
 - [x] Regression tests for cycle progression, issue progression and persistence.
 - [x] CI prints structured npm audit details for root-cause investigation.
-- [ ] Resolve all npm audit findings using confirmed advisory data and compatibility testing.
+- [x] Resolve the six reported npm audit findings using the confirmed advisory report and compatibility testing (final audit: zero vulnerabilities).
 - [ ] Commit a reviewed frontend package lockfile and switch CI to npm ci.
 - [ ] Verify final main-branch CI after all remediation commits.
