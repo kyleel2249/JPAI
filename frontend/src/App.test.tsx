@@ -36,7 +36,7 @@ describe("JPAI command centre", () => {
     render(<App />);
     fireEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: /Quality & Improvement/ }));
     expect(screen.getByRole("heading", { name: /continuous improvement control/i })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: /issue resolution protocol/i })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: /root-cause governance/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /assess → find cause → fix → test → verify/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /issue resolution register/i })).toBeTruthy();
   });
 });
