@@ -93,7 +93,7 @@ class PageExtractor(HTMLParser):
             self._heading = None
 
     def handle_data(self, data):
-        value = re.sub(r"\\s+", " ", data).strip()
+        value = re.sub(r"\s+", " ", data).strip()
         if not value or self._skip_tags:
             return
         if self._title:
@@ -306,7 +306,7 @@ class CrawlerStore:
                   schedule_id=None):
         now = datetime.now(UTC).isoformat()
         title = " ".join(parsed.title_parts)[:500]
-        content = re.sub(r"\\s+", " ", " ".join(parsed.text_parts)).strip()[:200000]
+        content = re.sub(r"\s+", " ", " ".join(parsed.text_parts)).strip()[:200000]
         description = parsed.meta.get("description", parsed.meta.get("og:description", ""))[:2000]
         # Fingerprint extracted, normalized content rather than volatile HTML markup.
         normalized_hash = hashlib.sha256(
@@ -375,7 +375,7 @@ class CrawlerStore:
         return [dict(row) for row in rows]
 
     def search_pages(self, query, limit=20):
-        terms = [term.lower() for term in re.findall(r"[\\w-]{2,}", query)][:12]
+        terms = [term.lower() for term in re.findall(r"[\w-]{2,}", query)][:12]
         if not terms:
             return []
         with self._connect() as db:
