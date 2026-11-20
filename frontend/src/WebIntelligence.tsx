@@ -75,7 +75,11 @@ export default function WebIntelligence() {
     }
   }
 
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    void refresh();
+    const poll = window.setInterval(() => { void refresh(); }, 30000);
+    return () => window.clearInterval(poll);
+  }, []);
 
   async function start() {
     if (!url.trim()) return;
