@@ -1,5 +1,6 @@
 """Professional specialist registry and governed multi-agent orchestration API."""
 import asyncio
+import re
 import time
 from functools import lru_cache
 
@@ -47,6 +48,12 @@ class CouncilRequest(BaseModel):
     prompt: str = Field(min_length=10, max_length=12000)
     agent_ids: list[str] = Field(min_length=2, max_length=4)
     temperature: float = Field(default=0.2, ge=0, le=1)
+
+
+class SpecialistRecommendationRequest(BaseModel):
+    prompt: str = Field(min_length=10, max_length=12000)
+    required_capabilities: list[str] = Field(default_factory=list, max_length=10)
+    limit: int = Field(default=5, ge=1, le=10)
 
 
 def _task_safety(prompt: str, agent: dict, requested: bool) -> bool:
@@ -110,6 +117,66 @@ def update_agent_status(agent_id: str, request: AgentStatusUpdate):
     if not get_store().update_agent_status(agent_id, request.status):
         raise HTTPException(status_code=404, detail="agent_not_found")
     return get_store().get_agent(agent_id)
+
+
+@router.post("/recommend")
+def recommend_specialists(request: SpecialistRecommendationRequest):
+    """Rank active specialists by skill fit, task relevance and observed outcomes."""
+    store = get_store()
+    required = {value.strip().lower() for value in request.required_capabilities if value.strip()}
+    prompt_terms = {
+        term for term in re.findall(r"[a-z0-9_+-]{3,}", request.prompt.lower())
+        if term not in {"the", "and", "for", "with", "from", "that", "this", "into", "your"}
+    }
+    scorecards = {item["id"]: item for item in store.scorecards()}
+    ranked = []
+
+    for agent in store.list_agents(status="active"):
+        capabilities = {value.lower() for value in agent["capabilities"]}
+        matched = sorted(required & capabilities)
+        missing = sorted(required - capabilities)
+        if missing:
+            continue
+
+        profile_text = " ".join([
+            agent["name"], agent["domain"], agent["description"],
+            *agent["roles"], *agent["capabilities"],
+        ]).lower()
+        profile_terms = set(re.findall(r"[a-z0-9_+-]{3,}", profile_text))
+        relevance = len(prompt_terms & profile_terms) / max(1, len(prompt_terms))
+        skill_fit = len(matched) / len(required) if required else 0.5
+        metrics = scorecards.get(agent["id"], {})
+        observed_success = metrics.get("success_rate")
+        performance = float(observed_success) if observed_success is not None else 0.5
+        score = (0.55 * skill_fit) + (0.25 * relevance) + (0.15 * performance) + 0.05
+
+        reasons = []
+        if matched:
+            reasons.append("matches required capabilities: " + ", ".join(matched))
+        if relevance >= 0.15:
+            reasons.append("profile language aligns with the task")
+        if observed_success is not None:
+            reasons.append(f"observed task success rate: {performance:.0%}")
+        else:
+            reasons.append("no execution history; neutral performance weighting applied")
+
+        ranked.append({
+            "agent": agent,
+            "suitability_score": round(score, 4),
+            "skill_fit": round(skill_fit, 4),
+            "task_relevance": round(relevance, 4),
+            "observed_success_rate": observed_success,
+            "matched_capabilities": matched,
+            "reasons": reasons,
+        })
+
+    ranked.sort(key=lambda item: (item["suitability_score"], item["agent"]["name"]), reverse=True)
+    return {
+        "count": min(len(ranked), request.limit),
+        "required_capabilities": sorted(required),
+        "method": "capability_filter_plus_relevance_and_observed_performance",
+        "items": ranked[:request.limit],
+    }
 
 
 @router.get("/scorecards")
