@@ -63,6 +63,12 @@ def test_explicit_approval_unblocks_task_for_execution(monkeypatch, tmp_path):
     approved = client.post(f"/api/v1/agents/tasks/{task_id}/approve")
     assert approved.status_code == 200
     assert approved.json()["approval_status"] == "approved"
+    duplicate = client.post(f"/api/v1/agents/tasks/{task_id}/approve")
+    assert duplicate.status_code == 409
+    events = client.get("/api/v1/agents/events").json()["items"]
+    approval_events = [event for event in events if event["task_id"] == task_id
+                       and event["event_type"] == "task.approved"]
+    assert len(approval_events) == 1
 
 
 def test_custom_agent_creation_and_duplicate_protection(monkeypatch, tmp_path):
@@ -127,6 +133,10 @@ def test_low_risk_task_runs_through_local_model_and_records_result(monkeypatch, 
     assert completed.status_code == 200
     assert completed.json()["status"] == "completed"
     assert completed.json()["result"] == "Structured specialist analysis."
+    events = client.get("/api/v1/agents/events").json()["items"]
+    start_events = [event for event in events if event["task_id"] == task_id
+                    and event["event_type"] == "task.started"]
+    assert len(start_events) == 1
     scorecards = client.get("/api/v1/agents/scorecards").json()["items"]
     engineer = next(item for item in scorecards if item["id"] == "fullstack_engineer")
     assert engineer["completed"] == 1
