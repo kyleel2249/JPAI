@@ -16,7 +16,9 @@ Local-first personal, professional and enterprise intelligence platform.
 - Persistent agent registry, task queue, human approvals, multi-agent council and task performance scorecards.
 - Capability-aware specialist recommendations with explicit skill filters, task relevance, observed outcomes and explainable ranking reasons.
 - Dashboard surfaces specialist recommendations, workforce scorecards and governance events.
-- Dashboard workspaces for intelligence, memory, agents, research, creative, engineering, business, finance, automation, security and system monitoring.
+- Dashboard workspaces for intelligence, memory, agents, quality governance, research, creative, engineering, business, finance, automation, security and system monitoring.
+- Evidence-gated continuous improvement cycles and sequential issue resolution with root-cause, corrective-action, test and verification records.
+- Quality audit trail persisted in the same local SQLite database as JPAI's other operational records.
 
 ## Local development
 
@@ -51,6 +53,8 @@ Memory search currently uses weighted lexical relevance, not embeddings. Knowled
 - [Phase 4 — multi-agent orchestration](docs/PHASE_4_MULTI_AGENT_ORCHESTRATION.md)
 - [Phase 5 — memory and knowledge infrastructure](docs/PHASE_5_MEMORY_KNOWLEDGE_INFRASTRUCTURE.md)
 - [Phase 6 — professional intelligence registry](docs/PHASE_6_PROFESSIONAL_INTELLIGENCE_REGISTRY.md)
+- [Quality governance and continuous improvement](docs/QUALITY_GOVERNANCE.md)
+- [Quality governance acceptance](docs/QUALITY_GOVERNANCE_ACCEPTANCE.md)
 - [Professional specialisation catalogue](docs/PROFESSIONAL_SPECIALISATIONS.md)
 
 ## API gateway configuration
