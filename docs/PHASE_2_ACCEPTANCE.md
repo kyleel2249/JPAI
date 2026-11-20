@@ -9,6 +9,8 @@ Provide a provider-neutral local intelligence layer, first local runtime adapter
 - [x] Local runtime health check.
 - [x] Model discovery and typed capability profiles.
 - [x] Capability-aware model selection with optional provider/context constraints.
+- [x] Automatic inference routing to the best matching discovered local model.
+- [x] Parallel multi-model comparison with per-model failure isolation.
 - [x] Inference endpoint with bounded prompt/system inputs and temperature.
 - [x] Bounded latency benchmark endpoint.
 - [x] Explicit unknown-model and runtime-unavailable errors.
