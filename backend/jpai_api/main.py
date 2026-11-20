@@ -28,6 +28,7 @@ app.add_middleware(
     GatewayMiddleware,
     requests_per_minute=settings.gateway_requests_per_minute,
     max_request_bytes=settings.gateway_max_request_bytes,
+    api_key=settings.gateway_api_key,
 )
 app.include_router(health_router, prefix=settings.api_prefix)
 app.include_router(intelligence_router, prefix=settings.api_prefix)
