@@ -17,7 +17,7 @@ from pathlib import Path
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm", ".m4v"}
 AUDIO_EXTENSIONS = {".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg"}
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff"}
-MAX_UPLOAD_BYTES = int(os.getenv("JPAI_MEDIA_MAX_UPLOAD_BYTES", str(500 * 1024 * 1024)))
+MAX_UPLOAD_BYTES = int(os.getenv("JPAI_MEDIA_MAX_UPLOAD_BYTES", str(20 * 1024 * 1024)))
 
 
 class MediaStudioError(ValueError):
@@ -116,7 +116,7 @@ class MediaStudioStore:
             "provenance_required": True,
             "human_review_required": True,
         }
-        if mode in {"reconstruct", "audio_restore"} and not safety["consent_confirmed"]:
+        if mode in {"reconstruct", "audio_restore", "image_rebuild"} and not safety["consent_confirmed"]:
             raise MediaStudioError("Confirm that you own or are authorized to process the source media.")
         if request.get("voice_cloning") and not safety["voice_identity_authorized"]:
             raise MediaStudioError("Voice cloning requires explicit authorization for the speaker's voice.")
@@ -143,7 +143,10 @@ class MediaStudioStore:
             return {"media_type": "video", "width": width, "height": height, "resolution_label": "4K UHD" if width == 3840 else "HD", "fps": fps, "container": "mp4", "video_codec": "H.265", "audio_codec": "AAC", "quality": "high"}
         if media_type == "image":
             return {"media_type": "image", "width": 3840, "height": 2160, "resolution_label": "4K UHD", "format": "PNG", "color_profile": "sRGB"}
-        return {"media_type": "audio", "sample_rate_hz": int(request.get("sample_rate_hz", 48000)), "bit_depth": 24, "format": "WAV", "lossless": True}
+        sample_rate = int(request.get("sample_rate_hz", 48000))
+        if sample_rate not in {48000, 96000}:
+            raise MediaStudioError("Audio sample rate must be 48000 or 96000 Hz.")
+        return {"media_type": "audio", "sample_rate_hz": sample_rate, "bit_depth": 24, "format": "WAV", "lossless": True}
 
     def get_job(self, job_id):
         with self._connect() as db:
