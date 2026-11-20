@@ -54,8 +54,12 @@ def test_trading_needs_backtest_paper_risk_limits_and_human(s):
  s.update(i,{"human_approval":True});assert s.transition(i,"deployment_eligible")["stage"]=="deployment_eligible"
 def test_automation_requires_owner_and_scoped_allowlist(s):
  p=s.create("enterprise_automation","Invoices","Route invoices.");i=p["id"]
- for f,v,t in [("process_map",["intake","review"],"workflow_design"),("workflow_spec",{"scope":"finance"},"permissions_review"),("permissions_review",{"status":"approved"},"simulation"),("simulation_evidence",[{"result":"passed","artifact":"sim://1"}],"approval")]:
-  s.update(i,{f:v});s.transition(i,t)
+ for f,v,t in [("process_map",["intake","review"],"workflow_design"),("workflow_spec",{"scope":"finance"},"permissions_review"),("permissions_review",{"status":"rejected"},"simulation"),("simulation_evidence",[{"result":"passed","artifact":"sim://1"}],"approval")]:
+  s.update(i,{f:v})
+  if t=="simulation":
+   with pytest.raises(DirectorateError):s.transition(i,t)
+   s.update(i,{"permissions_review":{"status":"approved"}})
+  s.transition(i,t)
  s.update(i,{"owner_approval":{"status":"approved"},"allowlisted_action_catalog":[{"action_id":"route_invoice","scope":"finance"}]})
  assert s.transition(i,"enabled")["stage"]=="enabled"
 def test_journalism_requires_source_factcheck_and_explicit_approval(s):

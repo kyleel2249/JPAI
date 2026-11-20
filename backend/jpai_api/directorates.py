@@ -77,6 +77,7 @@ class DirectorateStore:
    c=p.get("risk_controls");r=p.get("deployment_review")
    if not isinstance(c,dict) or not c.get("max_position_size") or not c.get("max_daily_loss"):raise DirectorateError("Define maximum position size and maximum daily loss.")
    if not isinstance(r,dict) or r.get("status")!="approved" or p.get("human_approval") is not True:raise DirectorateError("Approved deployment review and explicit human approval are required.")
+  if k=="enterprise_automation" and target=="simulation" and (not isinstance(p.get("permissions_review"),dict) or p["permissions_review"].get("status")!="approved"):raise DirectorateError("Automation permissions review must be approved before simulation.")
   if k=="enterprise_automation" and target=="enabled":
    a=p.get("owner_approval");actions=p.get("allowlisted_action_catalog")
    if not isinstance(a,dict) or a.get("status")!="approved":raise DirectorateError("Process-owner approval is required.")
