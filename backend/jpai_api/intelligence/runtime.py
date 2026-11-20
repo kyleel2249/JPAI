@@ -1,10 +1,13 @@
-"""Provider-neutral local inference runtime and Ollama adapter."""
+"""Provider-neutral local inference runtime and explainable model routing."""
 from __future__ import annotations
 import asyncio
 import ipaddress
 import time
 from urllib.parse import urlparse
+
 import httpx
+
+from jpai_api.intelligence.persistence import IntelligenceStore
 from jpai_api.intelligence.schemas import ModelProfile
 
 
@@ -53,13 +56,12 @@ class OllamaRuntime:
         for item in data.get("models", []):
             details = item.get("details") or {}
             name = item.get("name") or item.get("model")
-            if not name:
-                continue
-            profiles.append(ModelProfile(
-                id=name, provider="ollama", display_name=name,
-                family=details.get("family"), parameter_size=details.get("parameter_size"),
-                quantization=details.get("quantization_level"), capabilities=["chat"], available=True,
-            ))
+            if name:
+                profiles.append(ModelProfile(
+                    id=name, provider="ollama", display_name=name,
+                    family=details.get("family"), parameter_size=details.get("parameter_size"),
+                    quantization=details.get("quantization_level"), capabilities=["chat"], available=True,
+                ))
         return profiles
 
     async def generate(self, model: str, prompt: str, system: str | None, temperature: float) -> dict:
@@ -67,13 +69,13 @@ class OllamaRuntime:
                    "options": {"temperature": temperature}}
         if system:
             payload["system"] = system
-        data = await self._request("POST", "/api/generate", json=payload)
-        return data
+        return await self._request("POST", "/api/generate", json=payload)
 
 
 class LocalIntelligenceService:
-    def __init__(self, runtime: OllamaRuntime):
+    def __init__(self, runtime: OllamaRuntime, store: IntelligenceStore | None = None):
         self.runtime = runtime
+        self.store = store or IntelligenceStore()
         self._catalog: dict[str, ModelProfile] = {}
         self._lock = asyncio.Lock()
 
@@ -87,25 +89,52 @@ class LocalIntelligenceService:
         async with self._lock:
             return list(self._catalog.values())
 
+    async def rank(self, capability: str, preferred_provider: str | None = None,
+                   minimum_context: int | None = None, max_latency_ms: float | None = None,
+                   minimum_reliability: float = 0.0) -> list[dict]:
+        candidates = [p for p in await self.models() if p.available and capability in p.capabilities]
+        metrics = self.store.get_model_metrics()
+        ranked = []
+        for model in candidates:
+            metric = metrics.get(model.id, {})
+            latency = metric.get("avg_latency_ms")
+            samples = metric.get("samples", 0)
+            reliability = metric.get("successes", 0) / samples if samples else 1.0
+            if minimum_context is not None and (model.context_length is None or model.context_length < minimum_context):
+                continue
+            if max_latency_ms is not None and latency is not None and latency > max_latency_ms:
+                continue
+            if reliability < minimum_reliability:
+                continue
+            latency_score = 1.0 / (1.0 + (latency or 1000.0) / 1000.0)
+            provider_score = float(bool(preferred_provider and model.provider == preferred_provider))
+            context_score = min((model.context_length or 0) / 128000, 1.0)
+            score = 0.40 + 0.25 * reliability + 0.20 * latency_score + 0.10 * provider_score + 0.05 * context_score
+            ranked.append({"model": model, "score": round(score, 4), "reliability": round(reliability, 4),
+                           "avg_latency_ms": latency,
+                           "reason": "capability match; weighted reliability, latency, provider preference and context"})
+        return sorted(ranked, key=lambda item: (-item["score"], item["model"].provider, item["model"].id))
+
     async def select(self, capability: str, preferred_provider: str | None = None,
-                     minimum_context: int | None = None) -> ModelProfile | None:
-        candidates = await self.models()
-        candidates = [p for p in candidates if p.available and capability in p.capabilities]
-        if minimum_context is not None:
-            candidates = [p for p in candidates if p.context_length is not None and p.context_length >= minimum_context]
-        if preferred_provider:
-            preferred = [p for p in candidates if p.provider == preferred_provider]
-            if preferred:
-                candidates = preferred
-        return sorted(candidates, key=lambda p: (p.provider, p.id))[0] if candidates else None
+                     minimum_context: int | None = None, max_latency_ms: float | None = None,
+                     minimum_reliability: float = 0.0) -> ModelProfile | None:
+        ranked = await self.rank(capability, preferred_provider, minimum_context,
+                                 max_latency_ms, minimum_reliability)
+        return ranked[0]["model"] if ranked else None
 
     async def infer(self, model: str, prompt: str, system: str | None, temperature: float) -> dict:
-        known = {p.id for p in await self.models()}
+        known = {p.id: p for p in await self.models()}
         if model not in known:
             raise ModelNotFound("Model is not in the discovered local catalogue; discover models first")
         started = time.perf_counter()
-        result = await self.runtime.generate(model, prompt, system, temperature)
-        return {"model": model, "provider": "ollama", "response": result.get("response", ""),
-                "duration_ms": round((time.perf_counter() - started) * 1000, 2),
-                "prompt_tokens": result.get("prompt_eval_count"),
-                "completion_tokens": result.get("eval_count")}
+        try:
+            result = await self.runtime.generate(model, prompt, system, temperature)
+            duration = round((time.perf_counter() - started) * 1000, 2)
+            self.store.record_model_result(model, known[model].provider, duration, True)
+            return {"model": model, "provider": known[model].provider, "response": result.get("response", ""),
+                    "duration_ms": duration, "prompt_tokens": result.get("prompt_eval_count"),
+                    "completion_tokens": result.get("eval_count")}
+        except RuntimeUnavailable:
+            self.store.record_model_result(model, known[model].provider,
+                                           round((time.perf_counter() - started) * 1000, 2), False)
+            raise

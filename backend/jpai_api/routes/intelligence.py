@@ -2,18 +2,23 @@
 import asyncio
 import statistics
 from functools import lru_cache
+
 from fastapi import APIRouter, HTTPException
+
 from jpai_api.config import get_settings
-from jpai_api.intelligence.runtime import LocalIntelligenceService, ModelNotFound, OllamaRuntime, RuntimeUnavailable
-from jpai_api.intelligence.schemas import (AutoInferenceRequest, BenchmarkRequest, InferenceRequest,
-    InferenceResponse, ModelComparisonRequest, ModelSelectionRequest)
+from jpai_api.intelligence.runtime import (
+    LocalIntelligenceService, ModelNotFound, OllamaRuntime, RuntimeUnavailable,
+)
+from jpai_api.intelligence.schemas import (
+    AutoInferenceRequest, BenchmarkRequest, InferenceRequest, InferenceResponse,
+    ModelComparisonRequest, ModelSelectionRequest,
+)
 
 router = APIRouter(prefix="/intelligence", tags=["local-intelligence"])
 
 
 @lru_cache(maxsize=1)
 def get_service() -> LocalIntelligenceService:
-    """Return the process-wide service so the model catalogue and lock are shared across requests."""
     settings = get_settings()
     return LocalIntelligenceService(OllamaRuntime(settings.ollama_base_url, settings.model_timeout_seconds))
 
@@ -46,10 +51,13 @@ async def select_model(request: ModelSelectionRequest):
     service = get_service()
     try:
         await service.discover()
-        selected = await service.select(request.capability, request.preferred_provider, request.minimum_context)
-        if selected is None:
-            raise HTTPException(status_code=404, detail="No discovered local model satisfies the requested capability")
-        return {"selected": selected.model_dump(), "selection_reason": "deterministic eligible capability match"}
+        ranked = await service.rank(request.capability, request.preferred_provider,
+            request.minimum_context, request.max_latency_ms, request.minimum_reliability)
+        if not ranked:
+            raise HTTPException(status_code=404, detail="No discovered local model satisfies the routing constraints")
+        return {"selected": ranked[0]["model"].model_dump(), "score": ranked[0]["score"],
+                "selection_reason": ranked[0]["reason"],
+                "alternatives": [{"model": item["model"].id, "score": item["score"]} for item in ranked[1:4]]}
     except RuntimeUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -89,9 +97,10 @@ async def infer_auto(request: AutoInferenceRequest):
     service = get_service()
     try:
         await service.discover()
-        selected = await service.select(request.capability, request.preferred_provider, request.minimum_context)
+        selected = await service.select(request.capability, request.preferred_provider,
+            request.minimum_context, request.max_latency_ms, request.minimum_reliability)
         if selected is None:
-            raise HTTPException(status_code=404, detail="No local model satisfies the requested capability")
+            raise HTTPException(status_code=404, detail="No local model satisfies the requested routing constraints")
         return InferenceResponse(**await service.infer(selected.id, request.prompt, request.system, request.temperature))
     except ModelNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -112,8 +121,7 @@ async def compare_models(request: ModelComparisonRequest):
             async with semaphore:
                 return await service.infer(model, request.prompt, request.system, request.temperature)
 
-        tasks = [bounded_inference(model) for model in request.models]
-        outcomes = await asyncio.gather(*tasks, return_exceptions=True)
+        outcomes = await asyncio.gather(*(bounded_inference(model) for model in request.models), return_exceptions=True)
         results = []
         for model, outcome in zip(request.models, outcomes):
             if isinstance(outcome, ModelNotFound):
