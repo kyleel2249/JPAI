@@ -6,6 +6,8 @@ type Agent={id:string;name:string;domain:string;description:string;roles:string[
 type AgentTask={id:number;title:string;prompt:string;agent_id:string;priority:string;status:string;requires_approval:boolean|number;approval_status:string;result?:string|null;error_code?:string|null};
 
 const api=import.meta.env.VITE_API_BASE_URL??"http://127.0.0.1:8000";
+const apiKey=import.meta.env.VITE_JPAI_API_KEY??"";
+function apiFetch(path:string,init:RequestInit={}){return apiFetch(path,{...init,headers:{...(init.headers as Record<string,string>|undefined),...(apiKey?{"X-JPAI-API-Key":apiKey}:{})}});}
 const nav=[["Overview","⌂"],["Intelligence","◈"],["Memory","▤"],["Agents","◎"],["Research","⌕"],["Creative Studio","✳"],["Engineering","⌘"],["Business","▥"],["Finance & Trading","↗"],["Automation","⇄"],["Security","⬡"],["System Monitor","◉"]];
 export default function App(){
  const [page,setPage]=useState("Overview"),[health,setHealth]=useState<Health|null>(null),[runtime,setRuntime]=useState<{available:boolean;version?:string}|null>(null);
