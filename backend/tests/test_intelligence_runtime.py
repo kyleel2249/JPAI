@@ -1,6 +1,22 @@
 import pytest
 from jpai_api.intelligence.runtime import LocalIntelligenceService, ModelNotFound, OllamaRuntime
 from jpai_api.intelligence.schemas import ModelProfile
+from jpai_api.routes import intelligence as routes
+
+
+def test_service_can_be_constructed():
+    """Regression: the service uses asyncio.Lock, so asyncio must be imported in runtime.py."""
+    service = LocalIntelligenceService(OllamaRuntime("http://127.0.0.1:11434"))
+    assert service.runtime.base_url == "http://127.0.0.1:11434"
+
+
+def test_service_is_shared_between_requests():
+    """Regression: a per-request service discarded the catalogue and lock every time."""
+    routes.get_service.cache_clear()
+    try:
+        assert routes.get_service() is routes.get_service()
+    finally:
+        routes.get_service.cache_clear()
 
 
 def test_runtime_rejects_non_loopback_host():

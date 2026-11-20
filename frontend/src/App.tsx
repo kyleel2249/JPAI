@@ -7,7 +7,7 @@ const api = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 export default function App() {
   const [health, setHealth] = useState<Health | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [runtime, setRuntime] = useState<{ available: boolean; version?: string } | null>(null);
+  const [runtime, setRuntime] = useState<{ available: boolean; version?: string; error?: string } | null>(null);
   const [models, setModels] = useState<Model[]>([]);
   const [selected, setSelected] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -17,7 +17,7 @@ export default function App() {
 
   useEffect(() => {
     fetch(`${api}/api/v1/health`).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<Health>; }).then(setHealth).catch(e => setError(e instanceof Error ? e.message : "Connection failed"));
-    fetch(`${api}/api/v1/intelligence/runtime`).then(r => r.json()).then(setRuntime).catch(() => setRuntime({ available: false }));
+    fetch(`${api}/api/v1/intelligence/runtime`).then(r => { if (!r.ok) throw new Error(`Runtime check failed (HTTP ${r.status})`); return r.json() as Promise<{ available: boolean; version?: string }>; }).then(setRuntime).catch(e => setRuntime({ available: false, error: e instanceof Error ? e.message : "Runtime check failed" }));
   }, []);
 
   async function discoverModels() {
@@ -48,7 +48,7 @@ export default function App() {
     <section className="hero"><p className="eyebrow">PERSONAL · PROFESSIONAL · ENTERPRISE</p><h1>Intelligence, <em>orchestrated.</em></h1><p className="intro">A local-first intelligence platform for a coordinated digital workforce — with private inference, model choice and governed execution.</p>
       <div className="status-panel"><div className={health ? "status-dot online" : "status-dot"}/><div><strong>{health ? "JPAI core connected" : error ? "Core service unavailable" : "Connecting to local core…"}</strong><span>{health ? `${health.service} · ${health.mode} · ${health.environment}` : error ?? "Checking backend health"}</span></div><span className="status-label">{health ? "OPERATIONAL" : "CORE API"}</span></div>
     </section>
-    <section className="intelligence-panel"><div className="section-head"><div><p className="eyebrow">LOCAL MODEL OPERATIONS</p><h2>Intelligence runtime</h2></div><span className={runtime?.available ? "runtime-pill live" : "runtime-pill"}>{runtime?.available ? `OLLAMA ONLINE · ${runtime.version ?? "READY"}` : "RUNTIME NOT CONNECTED"}</span></div>
+    <section className="intelligence-panel"><div className="section-head"><div><p className="eyebrow">LOCAL MODEL OPERATIONS</p><h2>Intelligence runtime</h2></div><span className={runtime?.available ? "runtime-pill live" : "runtime-pill"}>{runtime?.available ? `OLLAMA ONLINE · ${runtime.version ?? "READY"}` : runtime?.error ? "API ERROR · CHECK BACKEND" : "RUNTIME NOT CONNECTED"}</span></div>
       <p className="panel-copy">Discover locally installed models and run private text inference. JPAI does not download models or send prompts to external providers.</p>
       <div className="controls"><button onClick={discoverModels} disabled={busy}>{busy ? "Working…" : "Discover local models"}</button><select aria-label="Select local model" value={selected} onChange={e => setSelected(e.target.value)}><option value="">Choose a discovered model</option>{models.map(model => <option key={model.id} value={model.id}>{model.display_name} · {model.provider}</option>)}</select></div>
       <textarea aria-label="Inference prompt" value={prompt} onChange={e => setPrompt(e.target.value)} placeholder="Enter a prompt for your selected local model…" rows={4}/>

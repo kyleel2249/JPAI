@@ -1,6 +1,7 @@
 """Local intelligence API routes."""
 import asyncio
 import statistics
+from functools import lru_cache
 from fastapi import APIRouter, HTTPException
 from jpai_api.config import get_settings
 from jpai_api.intelligence.runtime import LocalIntelligenceService, ModelNotFound, OllamaRuntime, RuntimeUnavailable
@@ -10,7 +11,9 @@ from jpai_api.intelligence.schemas import (AutoInferenceRequest, BenchmarkReques
 router = APIRouter(prefix="/intelligence", tags=["local-intelligence"])
 
 
+@lru_cache(maxsize=1)
 def get_service() -> LocalIntelligenceService:
+    """Return the process-wide service so the model catalogue and lock are shared across requests."""
     settings = get_settings()
     return LocalIntelligenceService(OllamaRuntime(settings.ollama_base_url, settings.model_timeout_seconds))
 
