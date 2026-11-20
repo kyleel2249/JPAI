@@ -1,5 +1,6 @@
 """Reality Studio media intake and production planning API."""
 from functools import lru_cache
+from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
@@ -38,10 +39,10 @@ def capabilities():
 
 
 @router.post("/assets", status_code=201)
-async def upload_asset(file: UploadFile = File(...), media_type: str = Query(..., pattern="^(video|audio|image)$")):
+async def upload_asset(file: Annotated[UploadFile, File()], media_type: Annotated[str, Query(pattern="^(video|audio|image)$")]):
     content = await file.read()
-    if len(content) > 500 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="Media upload exceeds 500 MB.")
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Media upload exceeds 20 MB. Large-file resumable upload is planned.")
     return _call(get_store().add_asset, file.filename or "", content, media_type)
 
 
