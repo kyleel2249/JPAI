@@ -23,6 +23,9 @@ class FakeService:
         return None
 
     async def infer(self, model, prompt, system, temperature):
+        if model != "local-chat":
+            from jpai_api.intelligence.runtime import ModelNotFound
+            raise ModelNotFound("not discovered")
         return {"model": model, "provider": "fake", "response": "READY", "duration_ms": 1.0,
                 "prompt_tokens": 2, "completion_tokens": 1}
 
