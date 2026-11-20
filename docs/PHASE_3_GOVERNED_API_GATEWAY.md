@@ -17,5 +17,5 @@
 - The gateway does not enable tools, filesystem access, shell execution, remote providers or autonomous actions.
 - Unsupported capabilities fail closed with HTTP 403.
 - The in-memory rate limiter is per process. Multi-worker or multi-device deployments require a shared limiter.
-- The request-size guard validates declared Content-Length; reverse proxies or a streaming body limiter are required for hostile clients that omit it.
+- The request-size guard validates declared Content-Length; reverse proxies or a streaming body limiter are required for hostile clients that omit it. This remains a known hardening item.
 - This is a local-first development gateway, not a substitute for production identity, TLS termination, secrets management or network segmentation.
