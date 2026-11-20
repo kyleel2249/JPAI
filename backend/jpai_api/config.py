@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
     log_level: str = "INFO"
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    model_timeout_seconds: float = 90.0
 
     model_config = SettingsConfigDict(env_prefix="JPAI_", env_file=".env", extra="ignore")
 
