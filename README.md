@@ -73,7 +73,7 @@ Optional local API protection:
 ```env
 JPAI_GATEWAY_API_KEY=replace_with_a_long_random_secret
 JPAI_GATEWAY_REQUESTS_PER_MINUTE=60
-JPAI_GATEWAY_MAX_REQUEST_BYTES=1048576
+JPAI_GATEWAY_MAX_REQUEST_BYTES=22020096
 VITE_JPAI_API_KEY=replace_with_the_same_local_secret
 ```
 Do not commit real secrets. A Vite-exposed key is only appropriate for a trusted local development setup.
