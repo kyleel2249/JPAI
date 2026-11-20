@@ -15,7 +15,7 @@ This delivery adds one shared, persistent, fail-closed operations kernel for the
 - [x] SQLite persistence, bounded payloads, strict field allowlists, sequential state transitions and audit events.
 - [x] Fail-closed behavior for missing evidence, unsupported fields, skipped stages and unapproved final transitions.
 - [x] Explicitly no external action execution, live trading, tool invocation, shell execution, model self-modification, device pairing or background sync.
-- [ ] CI verification pending; update this checklist only after the GitHub Actions run completes.
+- [x] GitHub Actions run 44830843856 verified on commit 072727f8dcd5d73709462b7bb23a0cc84d2b62b0: 135 backend tests passed, Ruff passed, frontend production build passed, 4 frontend tests passed, npm audit reported 0 vulnerabilities.
 
 ## API
 - GET /api/v1/platform-operations/catalog
