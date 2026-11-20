@@ -6,6 +6,8 @@ Local-first personal, professional and enterprise intelligence platform.
 
 - FastAPI backend and React/TypeScript command-centre dashboard.
 - Local Ollama model discovery and private inference.
+- Optional GPT-6 model fabric for GPT-6.2 Astra, GPT-6.2 Sol and GPT-6 Luna, using the OpenAI Responses API, image inputs, structured output, governed tool requests, usage/cost telemetry and bounded parallel specialist councils.
+- Parallel specialist councils share local SQLite workspace memory, preserve individual contributions and use Astra for final synthesis; local Ollama remains available.
 - Capability-aware model routing using observed reliability, latency, provider preference and context constraints.
 - Parallel model comparison and latency benchmarking.
 - Governed API gateway with capability allowlisting, optional API-key enforcement, request IDs, early rate limiting and bounded request bodies.
@@ -57,6 +59,7 @@ Web Intelligence collects public HTML and supports local PDF, DOCX, TXT, Markdow
 ## Documentation
 
 - [Master architecture](docs/MASTER_ARCHITECTURE.md)
+- [GPT-6 model fabric](docs/MODEL_FABRIC.md)
 - [30-phase roadmap](docs/ROADMAP_30_PHASES.md)
 - [Phase 3 — governed API gateway](docs/PHASE_3_GOVERNED_API_GATEWAY.md)
 - [Phase 4 — multi-agent orchestration](docs/PHASE_4_MULTI_AGENT_ORCHESTRATION.md)

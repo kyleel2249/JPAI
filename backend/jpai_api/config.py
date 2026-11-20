@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     gateway_requests_per_minute: int = 60
     gateway_max_request_bytes: int = 22_020_096
     gateway_api_key: str | None = None
+    openai_api_key: str | None = None
+    openai_base_url: str = "https://api.openai.com/v1"
+    model_fabric_timeout_seconds: float = 180.0
+    model_fabric_max_concurrency: int = 8
 
     model_config = SettingsConfigDict(env_prefix="JPAI_", env_file=".env", extra="ignore")
 
