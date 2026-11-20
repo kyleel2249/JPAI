@@ -249,6 +249,11 @@ class CrawlerStore:
                 "SELECT * FROM crawl_schedules WHERE id=?", (schedule_id,)
             ).fetchone())
 
+    def get_schedule(self, schedule_id):
+        with self._connect() as db:
+            row = db.execute("SELECT * FROM crawl_schedules WHERE id=?", (schedule_id,)).fetchone()
+        return dict(row) if row else None
+
     def list_schedules(self, limit=100):
         with self._connect() as db:
             rows = db.execute(
