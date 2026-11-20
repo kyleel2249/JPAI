@@ -6,7 +6,7 @@ from functools import lru_cache
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from jpai_api.agents.professional_catalog import CATEGORIES, PROFESSIONAL_IDENTITY
+from jpai_api.agents.professional_catalog import AGENT_BLUEPRINTS, CATEGORIES, PROFESSIONAL_IDENTITY
 from jpai_api.agents.store import AgentStore
 from jpai_api.intelligence.runtime import ModelNotFound, RuntimeUnavailable
 from jpai_api.routes.intelligence import get_service
@@ -87,6 +87,7 @@ def create_agent(request: AgentCreate):
         raise HTTPException(status_code=409, detail="agent_id_already_exists")
     agent = request.model_dump()
     valid_domains = {category["id"] for category in CATEGORIES}
+    valid_domains.update(agent["domain"] for agent in AGENT_BLUEPRINTS)
     if agent["domain"] not in valid_domains:
         raise HTTPException(status_code=422, detail="unknown_professional_domain")
     if agent["domain"] in {"fintech_quant", "cybersecurity"}:
