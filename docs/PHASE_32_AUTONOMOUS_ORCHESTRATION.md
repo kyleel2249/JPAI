@@ -4,7 +4,7 @@
 Operate JPAI-6.2 Ultra, JPAI-6.2 Pro, JPAI-6 Mantra and specialist agents as a coordinated intelligence workforce with concurrent analysis, persistent shared memory, independent peer review, durable run records and bounded recovery.
 
 ## Implemented
-- Bounded concurrent specialist inference using asynchronous fan-out and a shared concurrency semaphore.
+- Bounded concurrent specialist inference using asynchronous fan-out and a shared concurrency semaphore. The council accepts up to 32 active specialists; the default provider concurrency is 16 and can be tuned with `JPAI_MODEL_FABRIC_MAX_CONCURRENCY`.
 - Shared local SQLite workspace memory. Each completed specialist contribution is committed with run, agent, model and response provenance.
 - A second concurrent peer-review stage in which reviewers examine the combined first-pass workspace and identify disagreement, unsupported claims, missing evidence and risk.
 - JPAI-6.2 Ultra synthesis that retains attribution and disagreement.

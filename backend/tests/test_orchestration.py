@@ -32,3 +32,7 @@ def test_council_has_parallel_specialist_and_peer_review_stages():
     assert "shared_agent_workspace" in source
     assert "ledger.checkpoint" in source
     assert "jpai-6.2-ultra" in source and "jpai-6.2-pro" in source
+
+def test_council_accepts_full_specialist_workforce():
+    request = routes.CouncilRequest(prompt="Run a coordinated specialist review of this system.", agent_ids=[f"agent_{i}" for i in range(16)])
+    assert len(request.agent_ids) == 16
