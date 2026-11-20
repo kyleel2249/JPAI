@@ -14,7 +14,7 @@ describe("JPAI command centre", () => {
     render(<App />);
     expect(screen.getByRole("heading", { name: /intelligence, orchestrated\./i })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /operational overview/i })).toBeTruthy();
-    expect(within(screen.getByRole("navigation")).getByRole("button", { name: /^Intelligence$/ })).toBeTruthy();
+    expect(within(screen.getByRole("navigation")).getByRole("button", { name: "◈ Intelligence" })).toBeTruthy();
   });
 
   it("opens the persistent memory workspace", () => {
