@@ -155,10 +155,10 @@ def remember_page(page_id: int):
         }
     content = (
         "Source URL: " + page["url"]
-        + "\\nFetched at: " + page["fetched_at"]
-        + "\\nContent SHA-256: " + page["content_hash"]
-        + "\\n\\n" + page["description"]
-        + "\\n\\n" + page["content"]
+        + "\nFetched at: " + page["fetched_at"]
+        + "\nContent SHA-256: " + page["content_hash"]
+        + "\n\\n" + page["description"]
+        + "\n\\n" + page["content"]
     )[:30000]
     memory = IntelligenceStore().create_memory(
         namespace="web-research",
