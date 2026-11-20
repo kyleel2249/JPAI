@@ -9,6 +9,7 @@
 - [x] Backend regression tests for ordering, persistence and terminal states.
 - [x] CI npm audit diagnostics and moderate-or-higher security gate.
 - [x] Vite 8 / React plugin 6 / Vitest 4 toolchain migration initiated.
-- [ ] Final CI confirms zero moderate/high/critical advisories and successful build/tests.
+- [x] CI confirms zero npm vulnerabilities and successful frontend production build/tests.
+- [x] Backend CI: 47 tests passed; Ruff clean.
 - [ ] Commit lockfile and move CI to npm ci.
 - [ ] Add signed test evidence and multi-user quality roles in a future governance phase.
