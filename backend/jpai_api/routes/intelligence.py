@@ -103,7 +103,13 @@ async def compare_models(request: ModelComparisonRequest):
     service = get_service()
     try:
         await service.discover()
-        tasks = [service.infer(model, request.prompt, request.system, request.temperature) for model in request.models]
+        semaphore = asyncio.Semaphore(2)
+
+        async def bounded_inference(model: str):
+            async with semaphore:
+                return await service.infer(model, request.prompt, request.system, request.temperature)
+
+        tasks = [bounded_inference(model) for model in request.models]
         outcomes = await asyncio.gather(*tasks, return_exceptions=True)
         results = []
         for model, outcome in zip(request.models, outcomes):
