@@ -1,10 +1,16 @@
 """Governed web discovery, scheduled monitoring, extraction and local search API."""
 from functools import lru_cache
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 
 from jpai_api.intelligence.persistence import IntelligenceStore
+from jpai_api.research.documents import (
+    MAX_DOCUMENT_BYTES,
+    DocumentExtractionError,
+    DocumentStore,
+    extract_document,
+)
 from jpai_api.research.crawler import (
     CrawlPolicyError,
     CrawlerStore,
@@ -18,6 +24,11 @@ router = APIRouter(prefix="/web-intelligence", tags=["web-intelligence"])
 @lru_cache(maxsize=1)
 def get_store():
     return CrawlerStore()
+
+
+@lru_cache(maxsize=1)
+def get_document_store():
+    return DocumentStore()
 
 
 @lru_cache(maxsize=1)
@@ -40,6 +51,97 @@ class ScheduleUpdate(BaseModel):
     enabled: bool
 
 
+@router.post("/documents", status_code=201)
+async def upload_document(file: UploadFile = File(...)):
+    filename = file.filename or ""
+    try:
+        payload = await file.read(MAX_DOCUMENT_BYTES + 1)
+        if len(payload) > MAX_DOCUMENT_BYTES:
+            raise DocumentExtractionError("Document exceeds the 20 MB upload limit")
+        extracted = extract_document(filename, payload)
+        record = get_document_store().save(extracted)
+    except DocumentExtractionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        await file.close()
+    return {
+        "document": record,
+        "status": "stored",
+        "deduplicated_by": "sha256",
+        "trust": "unverified_user_supplied_document",
+    }
+
+
+@router.get("/documents")
+def list_documents(limit: int = Query(default=50, ge=1, le=100)):
+    items = get_document_store().list(limit)
+    return {"count": len(items), "items": items}
+
+
+@router.get("/documents/search")
+def search_documents(
+    q: str = Query(min_length=2, max_length=300),
+    limit: int = Query(default=20, ge=1, le=50),
+):
+    items = get_document_store().search(q, limit)
+    return {
+        "count": len(items),
+        "items": items,
+        "method": "local_weighted_keyword_search",
+        "trust": "unverified_user_supplied_documents",
+    }
+
+
+@router.get("/documents/{document_id}")
+def get_document(document_id: int):
+    item = get_document_store().get(document_id, include_content=True)
+    if not item:
+        raise HTTPException(status_code=404, detail="research_document_not_found")
+    item["trust"] = "unverified_user_supplied_document"
+    return item
+
+
+@router.post("/documents/{document_id}/remember")
+def remember_document(document_id: int):
+    store = get_document_store()
+    document = store.get(document_id, include_content=True)
+    if not document:
+        raise HTTPException(status_code=404, detail="research_document_not_found")
+    if document.get("memory_id"):
+        return {"document_id": document_id, "memory_id": document["memory_id"],
+                "status": "already_in_memory"}
+    content = (
+        "Uploaded document: " + document["filename"]
+        + "\\nFile type: " + document["file_type"]
+        + "\\nUploaded at: " + document["uploaded_at"]
+        + "\\nSHA-256: " + document["content_hash"]
+        + "\\n\\n" + document["content"]
+    )[:30000]
+    memory = IntelligenceStore().create_memory(
+        namespace="document-research",
+        title=document["filename"][:240],
+        content=content,
+        tags=["document-intelligence", document["file_type"]],
+        source="document_upload",
+        memory_type="semantic",
+        importance=0.7,
+        metadata={
+            "filename": document["filename"],
+            "file_type": document["file_type"],
+            "content_hash": document["content_hash"],
+            "uploaded_at": document["uploaded_at"],
+            "trust": "unverified_user_supplied_document",
+        },
+    )
+    store.mark_memory(document_id, memory["id"])
+    return {
+        "document_id": document_id,
+        "memory_id": memory["id"],
+        "status": "added_to_jpai_memory",
+        "warning": "Uploaded content is unverified and must be corroborated.",
+    }
+
+
 @router.get("/status")
 def status():
     return {
@@ -56,6 +158,7 @@ def status():
             "max_jsonld_block_bytes": 50000,
         },
         **get_store().stats(),
+        **get_document_store().stats(),
     }
 
 
