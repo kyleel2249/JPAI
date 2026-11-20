@@ -74,6 +74,7 @@ class QualityStore:
 
     def advance_cycle(self, cycle_id, stage, evidence):
         with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM quality_cycles WHERE id=?", (cycle_id,)).fetchone()
             if row is None or row["status"] != "in_progress":
                 return None, "cycle_not_active"
@@ -116,6 +117,7 @@ class QualityStore:
             "verified": "verification_result",
         }
         with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM quality_issues WHERE id=?", (issue_id,)).fetchone()
             if row is None or row["status"] == "verified":
                 return None, "issue_not_active"
