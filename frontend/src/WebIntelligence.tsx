@@ -23,6 +23,22 @@ type Version = {
 };
 type StructuredRecord = Record<string, unknown>;
 type StructuredData = { count: number; items: StructuredRecord[]; trust: string };
+type EvidenceSource = {
+  id: number; source_type: "web" | "document"; title: string; locator: string;
+  domain: string; source_hash: string; observed_at: string; trust: string;
+  relevance: number; excerpt: string;
+};
+type EvidenceLink = {
+  id: number; stance: "supports" | "contradicts" | "context"; excerpt: string;
+  source_title?: string; source_locator?: string; source_domain?: string;
+  source_trust?: string; source_hash: string;
+};
+type EvidenceClaim = {
+  id: number; statement: string; context: string; created_at: string;
+  evidence: EvidenceLink[]; support_count: number; contradiction_count: number;
+  context_count: number; source_origins: number; evidence_balance: string;
+  verification_status: string;
+};
 type ResearchDocument = {
   id: number; filename: string; file_type: string; content_hash: string;
   extracted_chars: number; page_count?: number | null; uploaded_at: string;
@@ -58,6 +74,15 @@ export default function WebIntelligence() {
   const [documents, setDocuments] = useState<ResearchDocument[]>([]);
   const [documentQuery, setDocumentQuery] = useState("");
   const [documentResults, setDocumentResults] = useState<ResearchDocument[]>([]);
+  const [evidenceQuery, setEvidenceQuery] = useState("");
+  const [evidenceSources, setEvidenceSources] = useState<EvidenceSource[]>([]);
+  const [evidenceClaims, setEvidenceClaims] = useState<EvidenceClaim[]>([]);
+  const [claimStatement, setClaimStatement] = useState("");
+  const [claimContext, setClaimContext] = useState("");
+  const [selectedSource, setSelectedSource] = useState<EvidenceSource | null>(null);
+  const [selectedClaimId, setSelectedClaimId] = useState<number | null>(null);
+  const [evidenceStance, setEvidenceStance] = useState<"supports" | "contradicts" | "context">("supports");
+  const [evidenceExcerpt, setEvidenceExcerpt] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [query, setQuery] = useState("");
   const [stats, setStats] = useState({
@@ -70,20 +95,20 @@ export default function WebIntelligence() {
 
   async function refresh() {
     try {
-      const [status, jobData, pageData, scheduleData, changeData, documentData] = await Promise.all([
+      const [status, jobData, pageData, scheduleData, changeData, documentData, claimData] = await Promise.all([
         request("/api/v1/web-intelligence/status"),
         request("/api/v1/web-intelligence/jobs"),
         request("/api/v1/web-intelligence/pages"),
         request("/api/v1/web-intelligence/schedules"),
         request("/api/v1/web-intelligence/changes?limit=30"),
-        request("/api/v1/web-intelligence/documents"),
+        request("/api/v1/web-intelligence/documents"),\n        request("/api/v1/web-intelligence/evidence/claims"),
       ]);
       setStats(status);
       setJobs(jobData.items ?? []);
       setPages(pageData.items ?? []);
       setSchedules(scheduleData.items ?? []);
       setChanges(changeData.items ?? []);
-      setDocuments(documentData.items ?? []);
+      setDocuments(documentData.items ?? []);\n      setEvidenceClaims(claimData.items ?? []);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Unable to load web intelligence");
     }
@@ -109,6 +134,62 @@ export default function WebIntelligence() {
       await refresh();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Document extraction failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function searchEvidenceSources() {
+    setBusy(true);
+    try {
+      const data = await request("/api/v1/web-intelligence/evidence/sources?q=" + encodeURIComponent(evidenceQuery));
+      setEvidenceSources(data.items ?? []);
+      setNotice(data.count + " evidence source(s) found · " + data.method);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Evidence source search failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createClaim() {
+    if (claimStatement.trim().length < 10) return;
+    setBusy(true);
+    try {
+      const data = await request("/api/v1/web-intelligence/evidence/claims", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statement: claimStatement, context: claimContext }),
+      });
+      setClaimStatement("");
+      setClaimContext("");
+      setSelectedClaimId(data.id);
+      setNotice("Research claim recorded. Attach source excerpts before drawing conclusions.");
+      await refresh();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Claim could not be recorded");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function linkEvidence() {
+    if (!selectedSource || !selectedClaimId || evidenceExcerpt.trim().length < 20) return;
+    setBusy(true);
+    try {
+      await request("/api/v1/web-intelligence/evidence/claims/" + selectedClaimId + "/evidence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source_type: selectedSource.source_type, source_id: selectedSource.id,
+          stance: evidenceStance, excerpt: evidenceExcerpt,
+        }),
+      });
+      setNotice("Verbatim source excerpt linked to the claim with provenance.");
+      setEvidenceExcerpt("");
+      await refresh();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Evidence link was rejected");
     } finally {
       setBusy(false);
     }
@@ -350,6 +431,75 @@ export default function WebIntelligence() {
         onClick={() => void rememberDocument(document.id)}>
         {document.memory_id ? "Added to memory" : "Add to memory"}</button></article>
     ) : <p className="muted">Uploaded research documents will appear here with extraction details and source fingerprints.</p>}</div>
+
+    <div className="section-title"><div><span className="eyebrow">EVIDENCE & KNOWLEDGE INTELLIGENCE</span><h2>Cross-source evidence workspace</h2></div>
+      <span className="muted">{evidenceClaims.length} research claims</span></div>
+    <div className="overview-grid">
+      <article className="panel">
+        <h3>Record a research claim</h3>
+        <p>Claims are researcher-authored. Record a precise statement, then attach exact excerpts from indexed web pages or uploaded documents.</p>
+        <div className="field"><label>Claim / proposition</label>
+          <textarea rows={3} value={claimStatement} onChange={(event) => setClaimStatement(event.target.value)}
+            placeholder="State one testable proposition…"/></div>
+        <div className="field"><label>Context and scope (optional)</label>
+          <textarea rows={2} value={claimContext} onChange={(event) => setClaimContext(event.target.value)}
+            placeholder="Time period, geography, definitions or caveats…"/></div>
+        <button className="gold-btn" disabled={busy || claimStatement.trim().length < 10}
+          onClick={() => void createClaim()}>Record research claim</button>
+        <div className="divider-line"/>
+        <h3>Find source evidence</h3>
+        <div className="search-row">
+          <input value={evidenceQuery} onChange={(event) => setEvidenceQuery(event.target.value)}
+            onKeyDown={(event) => { if (event.key === "Enter") void searchEvidenceSources(); }}
+            placeholder="Search all crawled pages and documents…"/>
+          <button className="outline-btn" disabled={busy} onClick={() => void searchEvidenceSources()}>Search</button>
+        </div>
+        {evidenceSources.map((source) => <article className="memory-item" key={source.source_type + ":" + source.id}>
+          <div><span className="eyebrow">{source.source_type.toUpperCase()} · {source.domain || "UPLOADED DOCUMENT"}</span>
+            <h4>{source.title || source.locator}</h4><p>{source.excerpt}</p>
+            <small>{source.trust} · SHA-256 {source.source_hash.slice(0, 18)}…</small>
+            <button className="text-btn" disabled={busy} onClick={() => {
+              setSelectedSource(source);
+              setEvidenceExcerpt(source.excerpt.replace(/^…|…$/g, "").trim());
+            }}>Select source & use excerpt</button>
+          </div></article>)}
+      </article>
+      <article className="panel">
+        <h3>Attach selected evidence</h3>
+        <p className="muted">{selectedSource ? selectedSource.title : "Select a source from the search results."}</p>
+        <div className="field"><label>Research claim</label>
+          <select value={selectedClaimId ?? ""} onChange={(event) => setSelectedClaimId(event.target.value ? Number(event.target.value) : null)}>
+            <option value="">Choose a recorded claim</option>
+            {evidenceClaims.map((claim) => <option key={claim.id} value={claim.id}>#{claim.id} · {claim.statement.slice(0, 90)}</option>)}
+          </select></div>
+        <div className="field"><label>Evidence relationship</label>
+          <select value={evidenceStance} onChange={(event) => setEvidenceStance(event.target.value as "supports" | "contradicts" | "context")}>
+            <option value="supports">Supports the claim</option>
+            <option value="contradicts">Contradicts the claim</option>
+            <option value="context">Provides context</option>
+          </select></div>
+        <div className="field"><label>Exact source excerpt (20–1,200 characters)</label>
+          <textarea rows={5} value={evidenceExcerpt} onChange={(event) => setEvidenceExcerpt(event.target.value)}
+            placeholder="Select a source to populate an excerpt, then edit only if the text remains verbatim…"/></div>
+        <button className="gold-btn" disabled={busy || !selectedSource || !selectedClaimId || evidenceExcerpt.trim().length < 20}
+          onClick={() => void linkEvidence()}>Link source evidence</button>
+        <p className="muted">JPAI validates that the excerpt occurs in the selected source. A citation match validates provenance, not the truth of the claim.</p>
+      </article>
+    </div>
+    <div className="panel task-list">{evidenceClaims.length ? evidenceClaims.map((claim) =>
+      <article className="task-row" key={claim.id}><div className="task-main">
+        <b>CLAIM #{claim.id} · {claim.statement}</b>
+        {claim.context && <small>{claim.context}</small>}
+        <span className="task-state">{claim.evidence_balance.replace(/_/g, " ").toUpperCase()} · NOT VERIFIED</span>
+        <small>{claim.support_count} supporting · {claim.contradiction_count} contradicting · {claim.context_count} contextual · {claim.source_origins} source origins</small>
+        {claim.evidence.map((item) => <div className="council-contribution" key={item.id}>
+          <b>{item.stance.toUpperCase()} · {item.source_title || item.source_locator}</b>
+          <small>{item.source_domain || item.source_trust} · SHA-256 {item.source_hash.slice(0, 16)}…</small>
+          <p>“{item.excerpt}”</p>
+          {item.source_locator?.startsWith("http") && <a href={item.source_locator} target="_blank" rel="noreferrer">{item.source_locator}</a>}
+        </div>)}
+      </div><button className="outline-btn" onClick={() => setSelectedClaimId(claim.id)}>Select claim</button></article>
+    ) : <p className="muted">No research claims recorded yet. Create a claim and attach source excerpts to begin a traceable evidence file.</p>}</div>
 
     <div className="section-title"><div><span className="eyebrow">AUTOMATED COLLECTION</span><h2>Monitoring schedules</h2></div>
       <span className="muted">{schedules.length} saved plans</span></div>

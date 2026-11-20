@@ -385,3 +385,120 @@ def test_document_upload_api_rejects_unsupported_format(tmp_path, monkeypatch):
         files={"file": ("payload.exe", b"not allowed", "application/octet-stream")},
     )
     assert response.status_code == 400
+
+
+
+def test_evidence_index_unifies_web_and_document_sources_and_preserves_provenance(tmp_path):
+    from jpai_api.research.documents import DocumentStore, extract_document
+    from jpai_api.research.evidence import EvidenceStore
+
+    path = str(tmp_path / "evidence.sqlite3")
+    web = CrawlerStore(path)
+    documents = DocumentStore(path)
+    job = web.create_job("https://example.com", 2)
+    web.save_page(
+        job["id"], "https://example.com/report", "example.com",
+        _parser("Energy outlook", "Renewable energy investment increased during the reporting period."),
+        200, "text/html", "raw-hash",
+    )
+    document = documents.save(extract_document(
+        "energy-brief.txt", b"Renewable energy investment increased during the reporting period."
+    ))
+    evidence = EvidenceStore(path)
+    results = evidence.search_sources("renewable energy")
+    assert {item["source_type"] for item in results} == {"web", "document"}
+    assert all("source_hash" in item and "trust" in item for item in results)
+    assert evidence.stats() == {"claims_recorded": 0, "evidence_links_recorded": 0}
+
+
+def test_evidence_claim_requires_verbatim_source_excerpt_and_reports_conflicts(tmp_path):
+    from jpai_api.research.evidence import EvidenceError, EvidenceStore
+
+    path = str(tmp_path / "claims.sqlite3")
+    web = CrawlerStore(path)
+    first_job = web.create_job("https://alpha.example", 2)
+    first = web.save_page(
+        first_job["id"], "https://alpha.example/a", "alpha.example",
+        _parser("Report A", "The project budget increased by 12 percent in the latest review."),
+        200, "text/html", "a",
+    )
+    second_job = web.create_job("https://beta.example", 2)
+    second = web.save_page(
+        second_job["id"], "https://beta.example/b", "beta.example",
+        _parser("Report B", "The project budget decreased by 4 percent in the latest review."),
+        200, "text/html", "b",
+    )
+    store = EvidenceStore(path)
+    claim = store.create_claim("The project budget increased in the latest review.")
+    with pytest.raises(EvidenceError):
+        store.add_evidence(claim["id"], "web", first["page_id"], "supports",
+                           "A fabricated quotation that is not present in the source.")
+    updated = store.add_evidence(
+        claim["id"], "web", first["page_id"], "supports",
+        "The project budget increased by 12 percent in the latest review.",
+    )
+    updated = store.add_evidence(
+        claim["id"], "web", second["page_id"], "contradicts",
+        "The project budget decreased by 4 percent in the latest review.",
+    )
+    assert updated["support_count"] == 1
+    assert updated["contradiction_count"] == 1
+    assert updated["source_origins"] == 2
+    assert updated["evidence_balance"] == "contested"
+    assert updated["verification_status"] == "not_verified"
+    assert len(updated["evidence"]) == 2
+
+
+def test_evidence_link_rejects_missing_claim_or_source_and_invalid_excerpt(tmp_path):
+    from jpai_api.research.evidence import EvidenceError, EvidenceStore
+
+    store = EvidenceStore(str(tmp_path / "missing.sqlite3"))
+    with pytest.raises(EvidenceError, match="claim"):
+        store.add_evidence(99, "web", 1, "supports", "A sufficiently long quotation.")
+    claim = store.create_claim("A statement that requires evidence.")
+    with pytest.raises(EvidenceError, match="source"):
+        store.add_evidence(claim["id"], "document", 99, "supports",
+                           "A sufficiently long quotation from a missing file.")
+
+
+def test_evidence_api_claim_lifecycle_and_verbatim_quote_validation(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from jpai_api.main import app
+    from jpai_api.routes import web_intelligence
+    from jpai_api.research.documents import DocumentStore
+    from jpai_api.research.evidence import EvidenceStore
+
+    path = str(tmp_path / "evidence-api.sqlite3")
+    crawler = CrawlerStore(path)
+    job = crawler.create_job("https://example.com", 1)
+    page = crawler.save_page(
+        job["id"], "https://example.com/evidence", "example.com",
+        _parser("Evidence report", "Independent testing confirmed the system passed all checks."),
+        200, "text/html", "api-hash",
+    )
+    monkeypatch.setattr(web_intelligence, "get_store", lambda: crawler)
+    monkeypatch.setattr(web_intelligence, "get_document_store", lambda: DocumentStore(path))
+    monkeypatch.setattr(web_intelligence, "get_evidence_store", lambda: EvidenceStore(path))
+    client = TestClient(app)
+    sources = client.get("/api/v1/web-intelligence/evidence/sources?q=independent")
+    assert sources.status_code == 200
+    assert sources.json()["items"][0]["source_type"] == "web"
+    claim = client.post("/api/v1/web-intelligence/evidence/claims",
+                        json={"statement": "The system passed independent testing."})
+    assert claim.status_code == 201
+    invalid = client.post(
+        f"/api/v1/web-intelligence/evidence/claims/{claim.json()['id']}/evidence",
+        json={"source_type": "web", "source_id": page["page_id"], "stance": "supports",
+              "excerpt": "This is a fabricated quote with enough characters."},
+    )
+    assert invalid.status_code == 400
+    linked = client.post(
+        f"/api/v1/web-intelligence/evidence/claims/{claim.json()['id']}/evidence",
+        json={"source_type": "web", "source_id": page["page_id"], "stance": "supports",
+              "excerpt": "Independent testing confirmed the system passed all checks."},
+    )
+    assert linked.status_code == 200
+    assert linked.json()["support_count"] == 1
+    assert linked.json()["verification_status"] == "not_verified"
+    assert client.get("/api/v1/web-intelligence/evidence/claims").json()["count"] == 1

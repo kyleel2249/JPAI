@@ -12,7 +12,7 @@
 ## Stage II — Leadership & Professional Workforce
 8. Executive Council & Leadership.
 9. Multi-Agent Workforce Engine — advanced task decomposition, delegation, queue workers and resilient scheduling.
-10. Research & Intelligence Directorate — Web Intelligence crawler, bounded scraper, provenance-aware extraction, schema.org JSON-LD metadata capture, local PDF/DOCX/TXT/Markdown/CSV extraction, bounded document indexing and search, persistent scheduled monitoring, page-version history, content-change alerts, local research index and specialist-agent ingestion.
+10. Research & Intelligence Directorate — Web Intelligence crawler, bounded scraper, provenance-aware extraction, schema.org JSON-LD metadata capture, local PDF/DOCX/TXT/Markdown/CSV extraction, bounded document indexing and search, persistent scheduled monitoring, page-version history, content-change alerts, local research index and specialist-agent ingestion, unified evidence search across web and uploaded sources, researcher-authored claim records, verbatim citation validation, support/contradiction/context links and transparent evidence-balance summaries.
 11. Technology & Engineering Directorate.
 
 ## Stage III — Creative, Business & Enterprise

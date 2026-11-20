@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 
 from jpai_api.intelligence.persistence import IntelligenceStore
+from jpai_api.research.evidence import EvidenceError, EvidenceStore
 from jpai_api.research.documents import (
     MAX_DOCUMENT_BYTES,
     DocumentExtractionError,
@@ -49,6 +50,23 @@ class ScheduleRequest(BaseModel):
 
 class ScheduleUpdate(BaseModel):
     enabled: bool
+
+
+class ClaimRequest(BaseModel):
+    statement: str = Field(min_length=10, max_length=1200)
+    context: str = Field(default="", max_length=4000)
+
+
+class EvidenceLinkRequest(BaseModel):
+    source_type: str = Field(pattern="^(web|document)$")
+    source_id: int = Field(ge=1)
+    stance: str = Field(pattern="^(supports|contradicts|context)$")
+    excerpt: str = Field(min_length=20, max_length=1200)
+
+
+@lru_cache(maxsize=1)
+def get_evidence_store():
+    return EvidenceStore()
 
 
 @router.post("/documents", status_code=201)
@@ -159,6 +177,7 @@ def status():
         },
         **get_store().stats(),
         **get_document_store().stats(),
+        **get_evidence_store().stats(),
     }
 
 
@@ -304,3 +323,47 @@ def remember_page(page_id: int):
         "status": "added_to_jpai_memory",
         "warning": "External source content is unverified and must be corroborated.",
     }
+
+
+
+@router.get("/evidence/sources")
+def search_evidence_sources(
+    q: str = Query(default="", max_length=300),
+    limit: int = Query(default=30, ge=1, le=100),
+):
+    items = get_evidence_store().search_sources(q, limit)
+    return {
+        "count": len(items), "items": items,
+        "method": "unified_local_lexical_search",
+        "trust": "sources_are_unverified_until_independently_assessed",
+    }
+
+
+@router.get("/evidence/claims")
+def list_evidence_claims(limit: int = Query(default=50, ge=1, le=100)):
+    items = get_evidence_store().list_claims(limit)
+    return {"count": len(items), "items": items}
+
+
+@router.post("/evidence/claims", status_code=201)
+def create_evidence_claim(request: ClaimRequest):
+    return get_evidence_store().create_claim(request.statement, request.context)
+
+
+@router.get("/evidence/claims/{claim_id}")
+def get_evidence_claim(claim_id: int):
+    item = get_evidence_store().get_claim(claim_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="research_claim_not_found")
+    return item
+
+
+@router.post("/evidence/claims/{claim_id}/evidence")
+def link_claim_evidence(claim_id: int, request: EvidenceLinkRequest):
+    try:
+        return get_evidence_store().add_evidence(
+            claim_id, request.source_type, request.source_id, request.stance, request.excerpt
+        )
+    except EvidenceError as exc:
+        status_code = 404 if "not found" in str(exc) else 400
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc

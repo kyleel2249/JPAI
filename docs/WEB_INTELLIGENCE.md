@@ -72,3 +72,18 @@ Disable the scheduler with the environment variable JPAI_WEB_INTELLIGENCE_SCHEDU
 
 ## Limitations and next research upgrades
 JavaScript-rendered pages, OCR for scanned PDFs, semantic/vector retrieval, multi-source claim corroboration, source credibility evaluation and notifications are not yet implemented. PDF extraction is text-layer based; image-only scanned pages do not produce OCR text. Encrypted PDFs are rejected. DOCX extraction reads document text from the main WordprocessingML document part; advanced embedded-object and tracked-change interpretation is not provided. Structured-data extraction currently supports JSON-LD script blocks; it does not yet parse microdata or RDFa. Search remains lexical. Completed means the bounded crawl finished, not that claims are verified.
+
+
+## Evidence & Knowledge Intelligence
+
+The shared evidence layer searches existing crawler pages and uploaded document text without copying either source into a second content store. Each result retains its source type, locator, observation time, content fingerprint and unverified trust label.
+
+Researchers can record a claim, then attach exact excerpts from a crawled page or uploaded document as **supports**, **contradicts** or **context**. The service rejects excerpts that do not occur verbatim in the selected source. Claim summaries expose support, contradiction and context counts, the number of distinct source origins, and an evidence-balance label. The balance is descriptive; it is not a truth score, source-credibility score or automated fact-check.
+
+- GET /api/v1/web-intelligence/evidence/sources?q=...
+- GET /api/v1/web-intelligence/evidence/claims
+- POST /api/v1/web-intelligence/evidence/claims
+- GET /api/v1/web-intelligence/evidence/claims/{claim_id}
+- POST /api/v1/web-intelligence/evidence/claims/{claim_id}/evidence
+
+Claims and evidence links persist in the same local SQLite database as the crawler and document catalogue. The source content remains in its original catalogue. Claims are researcher-authored; no automated claim extraction, source ranking, semantic search or truth determination is implied. Source origins are simple origin identifiers and do not guarantee editorial or organisational independence.
