@@ -17,7 +17,11 @@ class FakeService:
     async def discover(self):
         return [ModelProfile(id="local-chat", provider="fake", display_name="Local Chat", capabilities=["chat"])]
 
-    async def select(self, capability, preferred_provider=None, minimum_context=None):
+    async def rank(self, capability, preferred_provider=None, minimum_context=None, max_latency_ms=None, minimum_reliability=0.0):
+        selected = await self.select(capability, preferred_provider, minimum_context)
+        return [{"model": selected, "score": 0.9, "reason": "test capability match"}] if selected else []
+
+    async def select(self, capability, preferred_provider=None, minimum_context=None, max_latency_ms=None, minimum_reliability=0.0):
         if capability == "chat":
             return (await self.discover())[0]
         return None
