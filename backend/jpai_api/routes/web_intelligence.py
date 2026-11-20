@@ -3,6 +3,7 @@ from functools import lru_cache
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 from jpai_api.research.crawler import CrawlPolicyError, CrawlerStore, WebCrawler, validate_public_url
+from jpai_api.intelligence.persistence import IntelligenceStore
 
 router=APIRouter(prefix="/web-intelligence",tags=["web-intelligence"])
 @lru_cache(maxsize=1)
@@ -39,3 +40,24 @@ def list_pages(job_id:str|None=None,limit:int=Query(default=50,ge=1,le=100)):
 def search_pages(q:str=Query(min_length=2,max_length=300),limit:int=Query(default=20,ge=1,le=50)):
     items=get_store().search_pages(q,limit)
     return {"count":len(items),"items":items,"method":"local_weighted_keyword_search"}
+
+
+@router.post("/pages/{page_id}/remember")
+def remember_page(page_id: int):
+    page=get_store().get_page(page_id)
+    if not page:
+        raise HTTPException(status_code=404,detail="crawled_page_not_found")
+    if page.get("memory_id"):
+        return {"page_id":page_id,"memory_id":page["memory_id"],"status":"already_in_memory"}
+    content=("Source URL: "+page["url"]+"\nFetched at: "+page["fetched_at"]+
+             "\nContent SHA-256: "+page["content_hash"]+"\n\n"+page["description"]+
+             "\n\n"+page["content"])[:30000]
+    memory=IntelligenceStore().create_memory(
+        namespace="web-research",title=(page["title"] or page["url"])[:240],
+        content=content,tags=["web-intelligence",page["domain"][:48]],
+        source="web_crawler",memory_type="semantic",importance=0.7,
+        metadata={"url":page["url"],"domain":page["domain"],"fetched_at":page["fetched_at"],
+                  "content_hash":page["content_hash"],"trust":"unverified_external_source"})
+    get_store().mark_page_memory(page_id,memory["id"])
+    return {"page_id":page_id,"memory_id":memory["id"],"status":"added_to_jpai_memory",
+            "warning":"External source content is unverified and must be corroborated."}
