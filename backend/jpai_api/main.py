@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from jpai_api.config import get_settings
 from jpai_api.routes.agents import router as agents_router
+from jpai_api.routes.directorates import router as directorates_router
 from jpai_api.middleware.gateway import GatewayMiddleware
 from jpai_api.routes.gateway import router as gateway_router
 from jpai_api.routes.health import router as health_router
@@ -49,7 +50,7 @@ settings = get_settings()
 app = FastAPI(
     lifespan=lifespan,
     title=settings.app_name,
-    version="0.5.0",
+    version="0.6.0",
     description="Local-first personal, professional and enterprise intelligence platform",
 )
 app.add_middleware(
@@ -75,6 +76,7 @@ app.include_router(gateway_router, prefix=settings.api_prefix)
 app.include_router(agents_router, prefix=settings.api_prefix)
 app.include_router(web_intelligence_router, prefix=settings.api_prefix)
 app.include_router(workbenches_router, prefix=settings.api_prefix)
+app.include_router(directorates_router, prefix=settings.api_prefix)
 
 
 @app.get("/", tags=["system"])

@@ -17,16 +17,16 @@
 12. Creative Writing & Editorial Intelligence — governed editorial briefs, outlines, drafts, source-aware fact-checking, editorial review, explicit publication approval and durable audit history.
 
 ## Stage III — Creative, Business & Enterprise
-13. Graphic Design & Visual Intelligence.
-14. Video, Audio & Animation Studio.
-15. Creative Development & Digital Experiences.
-16. Business, Marketing & Customer Intelligence.
+13. Graphic Design & Visual Intelligence — persistent design briefs, design specifications, asset manifests, accessibility and review/approval gates.
+14. Video, Audio & Animation Studio — governed scripts, storyboards, production plans, production evidence, rights metadata and final review.
+15. Creative Development & Digital Experiences — product discovery, requirements, UX specifications, implementation artifacts, QA and launch review.
+16. Business, Marketing & Customer Intelligence — customer research, strategy, campaign assets, activation approval, measurement and optimization.
 
 ## Stage IV — Financial, Trading & Specialised Intelligence
-17. Financial Intelligence & ETI Integration.
-18. T-Bots Universal Trading Intelligence.
-19. Business & Enterprise Automation, including ELSIM.
-20. Media & Journalism Intelligence, including X-STUDIOS.
+17. Financial Intelligence & ETI Integration — financial provenance, data mapping, analysis assumptions, risk review, reporting and human approval; scoped ETI adapter remains separate.
+18. T-Bots Universal Trading Intelligence — universal market scope, data quality, strategy research, backtest/paper evidence, risk limits and deployment-eligibility governance; no live order execution.
+19. Business & Enterprise Automation, including ELSIM — process maps, workflow design, permissions, simulation, owner approval and scoped action allowlists; execution adapters remain separate.
+20. Media & Journalism Intelligence, including X-STUDIOS — assignment, sourced research, drafts, fact-check, editorial review, corrections and publication approval.
 21. Personal Intelligence & JPTI Integration.
 
 ## Stage V — Advanced Autonomy & Intelligence
