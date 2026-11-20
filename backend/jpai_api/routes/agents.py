@@ -234,6 +234,11 @@ async def run_task(task_id: int):
         store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
         store.event(task_id, task["agent_id"], "task.failed", {"reason": "local_runtime_unavailable"})
         raise HTTPException(status_code=503, detail="local_runtime_unavailable") from exc
+    except Exception as exc:
+        store.set_task_status(task_id, "failed", error_code="internal_execution_error")
+        store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
+        store.event(task_id, task["agent_id"], "task.failed", {"reason": "internal_execution_error"})
+        raise HTTPException(status_code=500, detail="agent_execution_failed") from exc
 
 
 @router.post("/council")
