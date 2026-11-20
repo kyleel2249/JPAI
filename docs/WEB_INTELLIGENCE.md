@@ -6,6 +6,8 @@ Local-first public-web collection, HTML extraction, persistent source indexing, 
 ## Capabilities
 - Same-origin discovery from a user-supplied HTTP(S) seed.
 - HTML title, visible text, headings, links, meta and Open Graph descriptions.
+- Bounded schema.org JSON-LD extraction (up to 25 blocks per page; 50 KB per block) with malformed or oversized blocks ignored.
+- Structured metadata is retained separately from visible page text and is labelled unverified external metadata.
 - Persistent crawl jobs and page records with normalized extracted-content SHA-256 fingerprints.
 - Version history for each distinct extracted page state.
 - Change events when normalized title, description or extracted text changes; volatile markup-only changes do not create a new content version.
@@ -40,6 +42,7 @@ Disable the scheduler with the environment variable JPAI_WEB_INTELLIGENCE_SCHEDU
 - GET /api/v1/web-intelligence/changes
 - GET /api/v1/web-intelligence/pages
 - GET /api/v1/web-intelligence/pages/{page_id}/versions
+- GET /api/v1/web-intelligence/pages/{page_id}/structured-data
 - GET /api/v1/web-intelligence/search?q=...
 - POST /api/v1/web-intelligence/pages/{page_id}/remember
 
@@ -50,4 +53,4 @@ Disable the scheduler with the environment variable JPAI_WEB_INTELLIGENCE_SCHEDU
 - External content remains unverified. Hashes establish content identity, not truth or publisher credibility.
 
 ## Limitations and next research upgrades
-JavaScript-rendered pages, PDF/document extraction, schema.org structured-data extraction, semantic/vector retrieval, multi-source claim corroboration, source credibility evaluation and notifications are not yet implemented. Search remains lexical. Completed means the bounded crawl finished, not that claims are verified.
+JavaScript-rendered pages, PDF/document extraction, semantic/vector retrieval, multi-source claim corroboration, source credibility evaluation and notifications are not yet implemented. Structured-data extraction currently supports JSON-LD script blocks; it does not yet parse microdata or RDFa. Search remains lexical. Completed means the bounded crawl finished, not that claims are verified.
