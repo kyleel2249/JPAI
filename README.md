@@ -6,9 +6,12 @@ Local-first personal, professional and enterprise intelligence platform.
 
 - FastAPI backend and React/TypeScript command-centre dashboard.
 - Local Ollama model discovery and private inference.
-- Optional GPT-6 model fabric for GPT-6.2 Astra, GPT-6.2 Sol and GPT-6 Luna, using the OpenAI Responses API, image inputs, structured output, governed tool requests, usage/cost telemetry and bounded parallel specialist councils.
-- Parallel specialist councils share local SQLite workspace memory, preserve individual contributions and use Astra for final synthesis; local Ollama remains available.
-- Capability-aware model routing using observed reliability, latency, provider preference and context constraints.
+- Optional JPAI Unified Model Fabric with three public identities: JPAI-6.2 Ultra, JPAI-6.2 Pro and JPAI-6 Mantra. Provider adapters, image inputs, structured output, governed tool requests and usage/cost telemetry.
+- Parallel specialist councils with shared local SQLite workspace memory, independent contributions, Ultra synthesis and Pro verification.
+- Explainable adaptive model routing by task type, complexity, risk, latency and cost preference.
+- Capability-aware model catalogue separating documented provider capabilities from JPAI-enabled tools.
+- Legacy provider model IDs accepted as migration aliases; user-facing catalogue and dashboard use JPAI identities.
+- Capability-aware local model routing using observed reliability, latency, provider preference and context constraints.
 - Parallel model comparison and latency benchmarking.
 - Governed API gateway with capability allowlisting, optional API-key enforcement, request IDs, early rate limiting and bounded request bodies.
 - SQLite persistence for typed memories, model telemetry, agent tasks, scorecards and audit events.
@@ -59,16 +62,15 @@ Web Intelligence collects public HTML and supports local PDF, DOCX, TXT, Markdow
 ## Documentation
 
 - [Master architecture](docs/MASTER_ARCHITECTURE.md)
-- [GPT-6 model fabric](docs/MODEL_FABRIC.md)
+- [JPAI Unified Model Family](docs/JPAI_MODEL_FAMILY.md)
+- [JPAI Model Fabric](docs/MODEL_FABRIC.md)
 - [30-phase roadmap](docs/ROADMAP_30_PHASES.md)
 - [Phase 3 — governed API gateway](docs/PHASE_3_GOVERNED_API_GATEWAY.md)
 - [Phase 4 — multi-agent orchestration](docs/PHASE_4_MULTI_AGENT_ORCHESTRATION.md)
 - [Phase 5 — memory and knowledge infrastructure](docs/PHASE_5_MEMORY_KNOWLEDGE_INFRASTRUCTURE.md)
 - [Phase 6 — professional intelligence registry](docs/PHASE_6_PROFESSIONAL_INTELLIGENCE_REGISTRY.md)
 - [Phase 7 — quality governance](docs/PHASE_7_QUALITY_GOVERNANCE.md)
-- [Phase 7 acceptance](docs/PHASE_7_ACCEPTANCE.md)
 - [Quality governance and continuous improvement](docs/QUALITY_GOVERNANCE.md)
-- [Quality governance acceptance](docs/QUALITY_GOVERNANCE_ACCEPTANCE.md)
 - [Web Intelligence & Research Engine](docs/WEB_INTELLIGENCE.md)
 - [Professional specialisation catalogue](docs/PROFESSIONAL_SPECIALISATIONS.md)
 - [Phases 21–30 advanced platform](docs/PHASE_21_30.md)
@@ -85,6 +87,10 @@ VITE_JPAI_API_KEY=replace_with_the_same_local_secret
 ```
 Do not commit real secrets. A Vite-exposed key is only appropriate for a trusted local development setup.
 
+## Model provider configuration
+
+Set `JPAI_OPENAI_API_KEY` only in the backend environment. Never expose provider credentials through Vite variables. JPAI model identities are stable aliases over provider adapters; current provider limits still apply. See [JPAI Model Family](docs/JPAI_MODEL_FAMILY.md) for capability and independence boundaries.
+
 ## Multi-agent safety boundaries
 
-Agent task execution currently performs local-model analysis only. High-risk quantitative-finance and cybersecurity tasks require explicit human approval. Recommendations do not create tasks or approve execution. No trading, deployment, payment, shell or external account actions are enabled.
+Agent task execution currently performs governed analysis only. High-risk quantitative-finance and cybersecurity tasks require explicit human approval. Recommendations do not create tasks or approve execution. No trading, deployment, payment, shell or external account actions are enabled.
