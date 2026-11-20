@@ -11,7 +11,7 @@ Local-first personal, professional and enterprise intelligence platform.
 - Capability-aware routing with observed reliability, latency, provider preference and known context constraints.
 - Parallel model comparison and latency benchmarking.
 - SQLite persistence for local memories, model performance telemetry and audit events.
-- Namespace-scoped memory capture, listing and transparent local keyword-relevance retrieval.
+- Four-class persistent memory (working, episodic, semantic, procedural), importance-aware retrieval, memory archiving and local knowledge graph.\n- Specialist task inference can retrieve relevant local memories as untrusted reference context.
 - Dashboard workspaces for intelligence, memory, agents, research, creative, engineering, business, finance, automation, security and system monitoring.
 - Professional specialisation taxonomy with 11 domains and 16 seeded specialist agents.
 - Persistent agent registry, task queue, human approvals, agent council and performance scorecards.
@@ -40,9 +40,9 @@ npm run dev
 Ollama must be started separately. The default runtime endpoint is http://127.0.0.1:11434.
 JPAI core and persistent memory do not require external API keys. Local memory defaults to data/jpai.sqlite3; override with JPAI_DATABASE_PATH.
 
-Memory search currently uses transparent lexical relevance, not embeddings. Model routing uses operational heuristics, not a claimed measure of intelligence or reasoning quality.
+Memory search currently uses weighted lexical relevance, not embeddings. Knowledge-graph entities and relations are locally persisted in SQLite. Model routing uses operational heuristics, not a claimed measure of intelligence or reasoning quality.
 
-See [Phase 2.1 engineering notes](docs/PHASE_2_1_STABILISATION_AND_INTELLIGENCE.md) and [Phase 3 API Gateway notes](docs/PHASE_3_GOVERNED_API_GATEWAY.md).
+See [Phase 2.1 engineering notes](docs/PHASE_2_1_STABILISATION_AND_INTELLIGENCE.md), [Phase 3 API Gateway notes](docs/PHASE_3_GOVERNED_API_GATEWAY.md), [Phase 4 orchestration](docs/PHASE_4_MULTI_AGENT_ORCHESTRATION.md), and [Phase 5 memory and knowledge infrastructure](docs/PHASE_5_MEMORY_KNOWLEDGE_INFRASTRUCTURE.md).
 
 ## API gateway configuration
 
