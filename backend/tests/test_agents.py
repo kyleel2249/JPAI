@@ -144,3 +144,17 @@ def test_agent_council_returns_independent_specialist_contributions(monkeypatch,
     assert payload["status"] == "completed"
     assert payload["contribution_count"] == 2
     assert payload["governance"] == "analysis_only_no_external_actions"
+
+def test_custom_finance_agent_cannot_downgrade_risk_tier(monkeypatch, tmp_path):
+    reset_store(monkeypatch, tmp_path)
+    response = client.post("/api/v1/agents", json={
+        "id": "custom_quant_helper",
+        "name": "Custom Quant Helper",
+        "domain": "fintech_quant",
+        "description": "Supports quantitative finance analysis.",
+        "roles": ["Quantitative Analyst"],
+        "capabilities": ["quant_research"],
+        "risk_level": "low",
+    })
+    assert response.status_code == 200
+    assert response.json()["risk_level"] == "high"
