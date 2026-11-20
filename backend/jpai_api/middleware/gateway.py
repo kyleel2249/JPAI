@@ -1,7 +1,8 @@
-"""Local API gateway protections: request IDs, bounded payloads and rate limits."""
+"""Local API gateway protections: request IDs, bounded bodies, auth and rate limits."""
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
 import math
 import time
@@ -11,9 +12,10 @@ from typing import Callable
 
 
 class GatewayMiddleware:
-    """Single-process sliding-window limiter for the local-first API gateway.
+    """Single-process sliding-window limiter and request guard for local deployments.
 
-    Multi-worker deployments must replace this limiter with a shared store.
+    The body is bounded and replayed to downstream ASGI apps. Multi-worker deployments
+    must use shared rate-limit storage; a reverse proxy should still terminate TLS.
     """
 
     def __init__(
@@ -21,11 +23,13 @@ class GatewayMiddleware:
         app,
         requests_per_minute: int = 60,
         max_request_bytes: int = 1_048_576,
+        api_key: str | None = None,
         clock: Callable[[], float] = time.monotonic,
     ):
         self.app = app
         self.limit = max(1, requests_per_minute)
         self.max_request_bytes = max(1024, max_request_bytes)
+        self.api_key = api_key
         self.clock = clock
         self._hits: dict[str, deque[float]] = defaultdict(deque)
         self._lock = asyncio.Lock()
@@ -37,10 +41,28 @@ class GatewayMiddleware:
             (b"content-length", str(len(body)).encode()),
             (b"x-request-id", request_id.encode()),
             (b"cache-control", b"no-store"),
+            (b"x-content-type-options", b"nosniff"),
         ]
         response_headers.extend(headers or [])
         await send({"type": "http.response.start", "status": status, "headers": response_headers})
         await send({"type": "http.response.body", "body": body})
+
+    async def _read_bounded_body(self, receive):
+        chunks = []
+        size = 0
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return None
+            if message["type"] != "http.request":
+                continue
+            chunk = message.get("body", b"")
+            size += len(chunk)
+            if size > self.max_request_bytes:
+                return False
+            chunks.append(chunk)
+            if not message.get("more_body", False):
+                return b"".join(chunks)
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -48,22 +70,43 @@ class GatewayMiddleware:
             return
 
         headers = {key.lower(): value for key, value in scope.get("headers", [])}
-        content_length = headers.get(b"content-length")
-        request_id_value = headers.get(b"x-request-id", b"").decode("ascii", "ignore")[:64]
-        request_id = (
-            request_id_value
-            if request_id_value and all(c.isalnum() or c in "-_." for c in request_id_value)
-            else uuid.uuid4().hex
-        )
+        raw_id = headers.get(b"x-request-id", b"").decode("ascii", "ignore")[:64]
+        request_id = raw_id if raw_id and all(c.isalnum() or c in "-_." for c in raw_id) else uuid.uuid4().hex
+        path = scope.get("path", "")
+        protected = path.startswith("/api/v1/") and path not in {
+            "/api/v1/health", "/api/v1/gateway/status",
+        }
 
-        if content_length:
+        if protected and self.api_key:
+            supplied = headers.get(b"x-jpai-api-key", b"").decode("utf-8", "ignore")
+            if not hmac.compare_digest(supplied, self.api_key):
+                await self._json_error(send, 401, "api_authentication_required", request_id)
+                return
+
+        declared_length = headers.get(b"content-length")
+        if declared_length:
             try:
-                if int(content_length) > self.max_request_bytes:
+                if int(declared_length) > self.max_request_bytes:
                     await self._json_error(send, 413, "request_too_large", request_id)
                     return
             except ValueError:
                 await self._json_error(send, 400, "invalid_content_length", request_id)
                 return
+
+        body = await self._read_bounded_body(receive)
+        if body is False:
+            await self._json_error(send, 413, "request_too_large", request_id)
+            return
+        if body is None:
+            return
+        replayed = False
+
+        async def replay_receive():
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return {"type": "http.request", "body": b"", "more_body": False}
 
         client = scope.get("client")
         client_key = client[0] if client else "unknown"
@@ -80,7 +123,6 @@ class GatewayMiddleware:
                 retry_after = max(1, math.ceil(60 - (now - hits[0])))
             else:
                 hits.append(now)
-            # Bound stale client-key accumulation in long-running local sessions.
             if len(self._hits) > 10_000:
                 stale = [key for key, values in self._hits.items() if not values or now - values[-1] >= 60]
                 for key in stale:
@@ -88,15 +130,10 @@ class GatewayMiddleware:
 
         if limited:
             await self._json_error(
-                send,
-                429,
-                "rate_limit_exceeded",
-                request_id,
-                [
-                    (b"retry-after", str(retry_after).encode()),
-                    (b"x-ratelimit-limit", str(self.limit).encode()),
-                    (b"x-ratelimit-remaining", b"0"),
-                ],
+                send, 429, "rate_limit_exceeded", request_id,
+                [(b"retry-after", str(retry_after).encode()),
+                 (b"x-ratelimit-limit", str(self.limit).encode()),
+                 (b"x-ratelimit-remaining", b"0")],
             )
             return
 
@@ -116,4 +153,4 @@ class GatewayMiddleware:
                 message = {**message, "headers": response_headers}
             await send(message)
 
-        await self.app(scope, receive, send_with_headers)
+        await self.app(scope, replay_receive, send_with_headers)
