@@ -45,5 +45,8 @@ describe("JPAI command centre", () => {
     fireEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: /Web Intelligence/ }));
     expect(screen.getByRole("heading", { name: /discovery, crawling & extraction/i })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /launch a governed crawl/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /continuous source monitoring/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /detected source changes/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /monitoring schedules/i })).toBeTruthy();
   });
 });
