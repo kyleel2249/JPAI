@@ -21,6 +21,9 @@ Local-first personal, professional and enterprise intelligence platform.
 - Quality audit trail persisted in the same local SQLite database as JPAI's other operational records.
 - Governed Web Intelligence crawler with same-origin discovery, robots.txt handling, bounded HTML extraction, SHA-256 source fingerprints, persistent crawl jobs and local search.
 - Explicit research-to-memory ingestion so selected crawled pages become provenance-labelled, unverified reference memories available to specialist retrieval.
+- Persistent recurring source-monitoring schedules with a local lifecycle-managed scheduler, pause/resume and atomic due-job claiming.
+- Normalized page-version history, SHA-256 content fingerprints and detected content-change events, surfaced in the Web Intelligence dashboard.
+- DNS-pinned public-IP socket connections to reduce DNS-rebinding/SSRF risk while retaining HTTPS hostname verification.
 
 ## Local development
 
@@ -45,7 +48,7 @@ npm run dev
 Ollama must be started separately. The default runtime endpoint is http://127.0.0.1:11434.
 JPAI core and persistent memory do not require external API keys. Local memory defaults to data/jpai.sqlite3; override with JPAI_DATABASE_PATH.
 
-Web Intelligence currently collects public HTML only. It uses same-origin scope, robots.txt checks, bounded page/depth/size/time limits and does not execute JavaScript. Crawled content is external and unverified; explicit ingestion preserves source URL, timestamp and content hash. Memory and web-page search currently use weighted lexical relevance, not embeddings. Knowledge-graph entities and relations are locally persisted in SQLite. Model and specialist routing use explainable operational heuristics, not a claimed measure of intelligence or guaranteed success.
+Web Intelligence currently collects public HTML only. It uses same-origin scope, robots.txt checks, DNS-pinned public-IP connections, and bounded page/depth/size/time limits; it does not execute JavaScript. Persistent schedules run only while the local API process is active. Page versions and content-change events are stored locally. Crawled content is external and unverified; explicit ingestion preserves source URL, timestamp and content hash. Memory and web-page search currently use weighted lexical relevance, not embeddings. Knowledge-graph entities and relations are locally persisted in SQLite. Model and specialist routing use explainable operational heuristics, not a claimed measure of intelligence or guaranteed success.
 
 ## Documentation
 
