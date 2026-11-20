@@ -10,5 +10,5 @@
 - [x] Phase 3 gateway admission-control improvement.
 - [x] Phase 4 atomic approval and task-claim audit events.
 - [x] Regression tests for recommendation filtering and task governance.
-- [ ] CI verification on the final Phase 6 commit.
+- [x] CI verification on the final Phase 6 commit (44 backend tests, Ruff, frontend production build and 2 frontend tests passed).
 - [ ] Future: governed skill editing/versioning, capability evidence/provenance, calibration and fairness evaluation.
