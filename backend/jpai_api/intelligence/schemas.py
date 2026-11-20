@@ -42,3 +42,19 @@ class BenchmarkRequest(BaseModel):
     prompt: str = Field(default="Reply with the single word READY.", min_length=1, max_length=2000)
     iterations: int = Field(default=3, ge=1, le=10)
 
+
+
+class AutoInferenceRequest(BaseModel):
+    capability: str = "chat"
+    prompt: str = Field(min_length=1, max_length=100_000)
+    system: str | None = Field(default=None, max_length=20_000)
+    temperature: float = Field(default=0.2, ge=0, le=2)
+    preferred_provider: str | None = None
+    minimum_context: int | None = Field(default=None, ge=1)
+
+
+class ModelComparisonRequest(BaseModel):
+    models: list[str] = Field(min_length=2, max_length=5)
+    prompt: str = Field(min_length=1, max_length=20_000)
+    system: str | None = Field(default=None, max_length=5_000)
+    temperature: float = Field(default=0.2, ge=0, le=2)
