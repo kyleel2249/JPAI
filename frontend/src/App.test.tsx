@@ -19,6 +19,14 @@ describe("JPAI command centre", () => {
     expect(within(screen.getByRole("navigation")).getByRole("button", { name: "◈ Intelligence" })).toBeTruthy();
   });
 
+  it("opens the Reality Studio media workspace", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ engines: {}, items: [] }) }));
+    render(<App />);
+    fireEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: /Reality Studio/ }));
+    expect(screen.getByRole("heading", { name: /JPAI Reality Studio/i })).toBeTruthy();
+    expect(screen.getByText(/3840 × 2160/)).toBeTruthy();
+  });
+
   it("opens the persistent memory workspace", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
