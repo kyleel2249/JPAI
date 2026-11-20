@@ -21,6 +21,19 @@ PHASES = {
  "reliability_engineering": (30,"Performance & Reliability Engineering",["objectives","load_testing","recovery_testing","operations_review","certified"],"slo_targets load_test_evidence backup_restore_evidence recovery_drill ops_approval"),
 }
 MAX_BYTES=100_000
+# Evidence is collected incrementally, one gate per transition.
+GATES = {
+ "personal_intelligence":[["personal_profile"],["preferences","integration_scope"],["privacy_review"],["human_approval"]],
+ "decision_intelligence":[["decision_question"],["evidence_set","alternatives"],["risk_assessment"],["decision_review"]],
+ "project_execution":[["project_plan"],["task_graph"],["simulation_evidence"],["acceptance_results","release_approval"]],
+ "adaptive_learning":[["feedback_records"],["evaluation_dataset","evaluation_report"],["change_proposal"],["human_approval"]],
+ "tool_intelligence":[["tool_manifest"],["permission_scope","threat_review"],["simulation_evidence"],["owner_approval"]],
+ "software_development":[["requirements"],["design"],["implementation_refs"],["test_evidence","security_review","release_approval"]],
+ "command_centre":[["dashboard_config"],["service_metrics"],["alert_rules"],["operator_review"]],
+ "device_ecosystem":[["device_registry"],["sync_policy"],["encryption_review"],["pairing_approval"]],
+ "security_governance":[["threat_model"],["access_review"],["policy_set"],["incident_plan","security_approval"]],
+ "reliability_engineering":[["slo_targets"],["load_test_evidence"],["backup_restore_evidence"],["recovery_drill","ops_approval"]],
+}
 
 class OperationsError(ValueError): pass
 
@@ -91,8 +104,8 @@ class OperationsStore:
    current=stages.index(row["stage"])
    if current>=len(stages)-1 or target!=stages[current+1]:raise OperationsError("Only the next sequential lifecycle stage is permitted.")
    payload=json.loads(row["payload"])
-   required=fields.split()
-   missing=[f for f in required if f not in payload or payload[f] is None or payload[f]=="" or payload[f]==[] or payload[f]=={}]
+   required=GATES[row["kind"]][current]
+   missing=[f for f in required if f not in payload or payload[f] is None or payload[f] is False or payload[f]=="" or payload[f]==[] or payload[f]=={}]
    if missing:raise OperationsError("Evidence gate not satisfied; missing: "+", ".join(missing))
    # Consequential transitions must be explicitly approved; no transition invokes external actions.
    approval_keys={"personal_intelligence":"human_approval","decision_intelligence":"decision_review","project_execution":"release_approval","adaptive_learning":"human_approval","tool_intelligence":"owner_approval","software_development":"release_approval","device_ecosystem":"pairing_approval","security_governance":"security_approval","reliability_engineering":"ops_approval"}

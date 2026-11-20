@@ -25,10 +25,13 @@ def test_all_phase_fields_are_allowlisted(store,kind,cfg):
 def test_personal_intelligence_sequential_gates_and_approval(store):
  p=store.create("personal_intelligence","Personal profile","Define a local personal intelligence profile.")
  i=p["id"]
- fields={"personal_profile":{"goals":["organise"]},"preferences":{"local_first":True},"integration_scope":{"system":"JPTI","mode":"read_only"},"privacy_review":{"status":"approved"}}
- store.update(i,fields)
- for target in ["integration_design","privacy_review","approval"]:
-  store.transition(i,target)
+ with pytest.raises(OperationsError):store.transition(i,"integration_design")
+ store.update(i,{"personal_profile":{"goals":["organise"]}})
+ store.transition(i,"integration_design")
+ store.update(i,{"preferences":{"local_first":True},"integration_scope":{"system":"JPTI","mode":"read_only"}})
+ store.transition(i,"privacy_review")
+ store.update(i,{"privacy_review":{"status":"approved"}})
+ store.transition(i,"approval")
  with pytest.raises(OperationsError):store.transition(i,"ready")
  store.update(i,{"human_approval":True})
  assert store.transition(i,"ready")["stage"]=="ready"
