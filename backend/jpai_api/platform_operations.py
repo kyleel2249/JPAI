@@ -100,7 +100,7 @@ class OperationsStore:
   with self._db() as db:
    row=db.execute("SELECT * FROM platform_operations WHERE id=?",(i,)).fetchone()
    if row is None:raise OperationsError("Operation not found.")
-   phase,name,stages,fields=PHASES[row["kind"]]
+   phase,_,stages,_=PHASES[row["kind"]]
    current=stages.index(row["stage"])
    if current>=len(stages)-1 or target!=stages[current+1]:raise OperationsError("Only the next sequential lifecycle stage is permitted.")
    payload=json.loads(row["payload"])
