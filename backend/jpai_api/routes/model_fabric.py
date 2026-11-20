@@ -55,7 +55,7 @@ class InferRequest(BaseModel):
 
 class CouncilRequest(BaseModel):
     prompt: str = Field(min_length=10, max_length=100_000)
-    agent_ids: list[str] = Field(min_length=2, max_length=8)
+    agent_ids: list[str] = Field(min_length=2, max_length=32)
     reasoning_effort: str = "high"
     max_output_tokens: int = Field(default=3000, ge=256, le=12000)
     include_shared_memory: bool = True
@@ -130,7 +130,7 @@ def status():
     return {
         "provider": "openai", "configured": fabric.configured,
         "model_count": len(MODEL_SPECS),
-        "parallel_limit": get_settings().model_fabric_max_concurrency,
+        "parallel_limit": get_settings().model_fabric_max_concurrency,\n        "max_council_agents": 32,
         "shared_memory": "local_sqlite",
         "durable_orchestration": "sqlite_run_ledger_and_checkpoints",
         "peer_review": "parallel_second_pass",
@@ -197,7 +197,7 @@ async def council(req: CouncilRequest):
         shared = "\n".join(f"- [{x['memory_type']} · {x['namespace']}] {x['title']}: {x['content'][:1200]}" for x in hits)
         ledger.checkpoint(run_id, "shared_memory_loaded", "completed", {"memory_hit_count": len(hits), "memory_ids": [x["id"] for x in hits]})
         tiers = ["jpai-6.2-ultra", "jpai-6.2-pro", "jpai-6-mantra"]
-        sem = asyncio.Semaphore(max(1, min(8, get_settings().model_fabric_max_concurrency)))
+        sem = asyncio.Semaphore(max(1, min(32, get_settings().model_fabric_max_concurrency)))
         async def specialist(i, agent):
             model = "jpai-6.2-ultra" if agent["risk_level"] == "high" else tiers[i % 3]
             system = (f"You are {agent['name']}, specialist in {agent['domain']}. Roles: {agent['roles']}. "
