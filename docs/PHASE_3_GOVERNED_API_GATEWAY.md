@@ -1,21 +1,32 @@
-# Phase 3 — Governed API Gateway
+# Phase 3 — Governed API Gateway hardening
 
-## Delivered scope
-- Unified local inference ingress at `POST /api/v1/gateway/infer`.
-- Capability allowlisting: only `chat` is enabled until additional adapters and their safety contracts exist.
-- Reuses the existing model eligibility and ranking service; returns the selected model, score, rationale and bounded alternatives.
-- Optional API-key enforcement through `JPAI_GATEWAY_API_KEY`; comparisons use constant-time secret comparison.
-- Request IDs, rate-limit response headers, bounded declared request sizes and baseline browser security headers.
-- Gateway configuration/status endpoint at `GET /api/v1/gateway/status`.
+## Implemented
+- Unified local inference gateway: `POST /api/v1/gateway/infer`.
+- Gateway diagnostics: `GET /api/v1/gateway/status`.
+- Capability allowlisting; only capabilities implemented by the local runtime are accepted.
+- Automatic model selection through the capability-aware ranker.
+- Optional API-key enforcement across protected `/api/v1/*` routes using `X-JPAI-API-Key`.
+- Public liveness and gateway-status exceptions; CORS preflight requests bypass API-key enforcement.
+- Constant-time API-key comparison.
+- Bounded request-body buffering and replay, including chunked bodies without Content-Length.
+- Sliding-window per-client request limiting, request IDs, retry hints and security response headers.
+- Regression tests for authentication, streamed body limits, CORS preflight, rate limiting and gateway behaviour.
 
-## Configuration
-- `JPAI_GATEWAY_REQUESTS_PER_MINUTE=60`
-- `JPAI_GATEWAY_MAX_REQUEST_BYTES=1048576`
-- `JPAI_GATEWAY_API_KEY` (unset for loopback local development; set before exposing the API to trusted clients)
+## Local configuration
+```env
+JPAI_GATEWAY_REQUESTS_PER_MINUTE=60
+JPAI_GATEWAY_MAX_REQUEST_BYTES=1048576
+JPAI_GATEWAY_API_KEY=replace_with_a_long_random_secret
+VITE_JPAI_API_KEY=replace_with_the_same_local_secret
+```
 
-## Safety and limitations
-- The gateway does not enable tools, filesystem access, shell execution, remote providers or autonomous actions.
-- Unsupported capabilities fail closed with HTTP 403.
-- The in-memory rate limiter is per process. Multi-worker or multi-device deployments require a shared limiter.
-- The request-size guard validates declared Content-Length; reverse proxies or a streaming body limiter are required for hostile clients that omit it. This remains a known hardening item.
-- This is a local-first development gateway, not a substitute for production identity, TLS termination, secrets management or network segmentation.
+Set the Vite variable only for a trusted local development build. A browser-delivered key is visible to users of that browser bundle and is not a production secret-management solution. Do not commit real secrets.
+
+## Remaining deployment hardening
+- The rate limiter is process-local. Multi-worker or multi-device deployments need a shared atomic store.
+- Production network exposure requires TLS termination, managed identity, secret rotation, network segmentation and operational monitoring.
+- The request body is buffered up to the configured cap before downstream processing; this is deliberately bounded and is not a large-file streaming service.
+- The gateway does not proxy arbitrary remote providers, run shell commands, access files, deploy software, place trades or execute financial transactions.
+
+## Verification
+Repository CI is configured to run backend pytest and Ruff checks plus frontend TypeScript/Vite build and Vitest. A source commit is not proof that the workflow has passed; inspect the actual Actions run before marking the phase certified.
