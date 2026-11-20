@@ -12,8 +12,10 @@ describe("JPAI command centre", () => {
       json: async () => ({ status: "ok", service: "JPAI", environment: "test", mode: "local-first" }),
     }));
     render(<App />);
-    expect(screen.getByRole("heading", { name: /intelligence, orchestrated\./i })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: /operational overview/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /command centre/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /jpai-6\.2 ultra/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /shared memory/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /recent activity/i })).toBeTruthy();
     expect(within(screen.getByRole("navigation")).getByRole("button", { name: "◈ Intelligence" })).toBeTruthy();
   });
 
