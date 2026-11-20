@@ -50,7 +50,11 @@ def validate_public_url(url: str) -> str:
     host = parsed.hostname.rstrip(".").lower()
     if host in {"localhost", "localhost.localdomain"} or host.endswith(".local"):
         raise CrawlPolicyError("Local and private network destinations are not allowed")
-    _resolve_public_address(host, parsed.port or (443 if parsed.scheme == "https" else 80))
+    try:
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    except ValueError as exc:
+        raise CrawlPolicyError("Invalid destination port") from exc
+    _resolve_public_address(host, port)
     return urlunparse(parsed._replace(fragment=""))
 
 
