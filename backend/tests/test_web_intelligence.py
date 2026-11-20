@@ -502,3 +502,11 @@ def test_evidence_api_claim_lifecycle_and_verbatim_quote_validation(tmp_path, mo
     assert linked.json()["support_count"] == 1
     assert linked.json()["verification_status"] == "not_verified"
     assert client.get("/api/v1/web-intelligence/evidence/claims").json()["count"] == 1
+
+
+def test_evidence_store_bootstraps_source_catalogues_on_first_use(tmp_path):
+    from jpai_api.research.evidence import EvidenceStore
+
+    store = EvidenceStore(str(tmp_path / "first-use.sqlite3"))
+    assert store.search_sources() == []
+    assert store.stats() == {"claims_recorded": 0, "evidence_links_recorded": 0}

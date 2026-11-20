@@ -21,6 +21,12 @@ class EvidenceStore:
     def __init__(self, path=None):
         self.path = Path(path or os.getenv("JPAI_DATABASE_PATH", "data/jpai.sqlite3")).expanduser()
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        # Bootstrap the two source catalogues before any evidence search can run.
+        from jpai_api.research.crawler import CrawlerStore
+        from jpai_api.research.documents import DocumentStore
+
+        CrawlerStore(str(self.path))
+        DocumentStore(str(self.path))
         with self._connect() as db:
             db.executescript("""
             CREATE TABLE IF NOT EXISTS evidence_claims (
