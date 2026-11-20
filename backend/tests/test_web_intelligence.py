@@ -75,6 +75,48 @@ def test_html_extraction():
     assert "secret()" not in parser.text_parts
 
 
+def test_jsonld_structured_data_is_extracted_without_leaking_script_text():
+    parser = PageExtractor()
+    parser.feed(
+        '<title>Research</title>'
+        '<script type="application/ld+json">'
+        '{"@context":"https://schema.org","@type":"Article",'
+        '"headline":"Market outlook","author":{"@type":"Person","name":"A. Analyst"}}'
+        '</script><p>Visible article text</p>'
+        '<script>secret_token()</script>'
+    )
+    assert len(parser.structured_data) == 1
+    assert parser.structured_data[0]["@type"] == "Article"
+    assert "secret_token" not in parser.text_parts
+
+
+def test_invalid_and_oversized_jsonld_are_ignored():
+    parser = PageExtractor()
+    parser.feed(
+        '<script type="application/ld+json">{invalid}</script>'
+        '<script type="application/ld+json">' + ('x' * 50001) + '</script>'
+    )
+    assert parser.structured_data == []
+
+
+def test_jsonld_structured_data_persists_and_legacy_rows_default_empty(tmp_path):
+    store = CrawlerStore(str(tmp_path / "structured.sqlite3"))
+    job = store.create_job("https://example.com", 2)
+    parser = PageExtractor()
+    parser.feed(
+        '<script type="application/ld+json">'
+        '{"@type":"NewsArticle","headline":"A headline"}'
+        '</script><p>Body text</p>'
+    )
+    result = store.save_page(
+        job["id"], "https://example.com/article", "example.com",
+        parser, 200, "text/html", "raw-hash",
+    )
+    page = store.get_page(result["page_id"])
+    assert page["structured_data"] == [{"@type": "NewsArticle", "headline": "A headline"}]
+    assert store.stats()["pages_with_structured_data"] == 1
+
+
 def test_persistence_and_search(tmp_path):
     store = CrawlerStore(str(tmp_path / "web.sqlite3"))
     job = store.create_job("https://example.com", 5)
