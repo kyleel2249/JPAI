@@ -168,3 +168,34 @@ def test_custom_finance_agent_cannot_downgrade_risk_tier(monkeypatch, tmp_path):
     })
     assert response.status_code == 200
     assert response.json()["risk_level"] == "high"
+
+
+
+def test_specialist_recommendations_respect_required_capabilities(monkeypatch, tmp_path):
+    reset_store(monkeypatch, tmp_path)
+    response = client.post("/api/v1/agents/recommend", json={
+        "prompt": "Review the system architecture and identify design risks.",
+        "required_capabilities": ["architecture"],
+        "limit": 5,
+    })
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["method"] == "capability_filter_plus_relevance_and_observed_performance"
+    assert payload["count"] == 1
+    recommendation = payload["items"][0]
+    assert recommendation["agent"]["id"] == "chief_architect"
+    assert recommendation["matched_capabilities"] == ["architecture"]
+    assert recommendation["skill_fit"] == 1
+
+
+def test_specialist_recommendations_return_empty_when_no_agent_has_required_skill(
+    monkeypatch, tmp_path
+):
+    reset_store(monkeypatch, tmp_path)
+    response = client.post("/api/v1/agents/recommend", json={
+        "prompt": "Analyse an unusual specialist request and provide a plan.",
+        "required_capabilities": ["nonexistent_capability"],
+    })
+    assert response.status_code == 200
+    assert response.json()["count"] == 0
+    assert response.json()["items"] == []
