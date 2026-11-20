@@ -10,3 +10,11 @@
 @media(max-width:720px){.role-catalog{grid-template-columns:1fr}}
 
 .knowledge-graph-panel{margin-top:16px}.graph-metrics{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0 18px}.graph-metrics span{padding:10px 13px;border:1px solid #314861;background:#0c1928;border-radius:8px;color:#9fb0c5;font-size:11px}.graph-metrics b{color:#e7c17a;font:700 20px Manrope;margin-right:6px}.graph-edges{display:flex;gap:8px;flex-wrap:wrap}.graph-edges span{border:1px solid #30465f;background:#142338;border-radius:20px;padding:8px 11px;color:#dce7f5;font-size:10px}.graph-edges i{color:#e4bd76;font-style:normal}.graph-edges small{color:#83c9a9;margin-left:4px}
+
+
+/* Phase 6 — specialist recommendation and governance telemetry */
+.divider-line{height:1px;background:#2a3d55;margin:18px 0}
+.scorecard-grid{margin-top:18px}
+.scorecard-grid .panel-head h3{margin:0}
+.council-contribution .text-btn{padding:5px 0;text-align:left}
+.agent-card,.role-category,.panel{min-width:0}
