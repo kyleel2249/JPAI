@@ -14,7 +14,7 @@ describe("JPAI command centre", () => {
     render(<App />);
     expect(screen.getByRole("heading", { name: /intelligence, orchestrated\./i })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /operational overview/i })).toBeTruthy();
-    expect(within(screen.getByRole("navigation")).getByRole("button", { name: /Intelligence/ })).toBeTruthy();
+    expect(within(screen.getByRole("navigation")).getByRole("button", { name: /^Intelligence$/ })).toBeTruthy();
   });
 
   it("opens the persistent memory workspace", () => {
@@ -38,5 +38,12 @@ describe("JPAI command centre", () => {
     expect(screen.getByRole("heading", { name: /continuous improvement control/i })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /assess → find cause → fix → test → verify/i })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /issue resolution register/i })).toBeTruthy();
+  });
+  it("opens the web intelligence crawler workspace", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ status: "available", items: [], pages_stored: 0, domains_indexed: 0, jobs_total: 0 }) }));
+    render(<App />);
+    fireEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: /Web Intelligence/ }));
+    expect(screen.getByRole("heading", { name: /discovery, crawling & extraction/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /launch a governed crawl/i })).toBeTruthy();
   });
 });
