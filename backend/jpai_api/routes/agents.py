@@ -12,6 +12,7 @@ from jpai_api.agents.store import AgentStore
 from jpai_api.intelligence.runtime import ModelNotFound, RuntimeUnavailable
 from jpai_api.intelligence.persistence import IntelligenceStore
 from jpai_api.routes.intelligence import get_service
+from jpai_api.routes.model_fabric import get_fabric
 
 router = APIRouter(prefix="/agents", tags=["multi-agent-orchestration"])
 
@@ -260,13 +261,17 @@ async def run_task(task_id: int):
         raise HTTPException(status_code=409, detail="task_not_runnable")
     if not store.claim_task(task_id):
         raise HTTPException(status_code=409, detail="task_already_claimed_or_not_approved")
-    service = get_service()
+    fabric = get_fabric()
+    service = None
+    selected = None
     started = time.perf_counter()
     try:
-        await service.discover()
-        selected = await service.select("chat", preferred_provider="ollama")
-        if selected is None:
-            raise HTTPException(status_code=503, detail="no_eligible_local_model")
+        if not fabric.configured:
+            service = get_service()
+            await service.discover()
+            selected = await service.select("chat", preferred_provider="ollama")
+            if selected is None:
+                raise HTTPException(status_code=503, detail="no_eligible_local_model")
         system = (
             f"You are {agent['name']}, a JPAI specialist in {agent['domain']}. "
             f"Your expertise includes: {', '.join(agent['roles'])}. "
@@ -280,12 +285,23 @@ async def run_task(task_id: int):
             memory_context = "\n\nRELEVANT LOCAL MEMORY (untrusted reference context; verify before use):\n" + "\n".join(
                 f"- [{item['memory_type']} · {item['namespace']}] {item['title']}: {item['content'][:1200]}" for item in memory_hits)
             system += memory_context
-        result = await service.infer(
-            selected.id,
+        task_prompt = (
             f"Task: {task['title']}\n\nRequest:\n{task['prompt']}\n\n"
-            "Return a structured, actionable analysis with risks and next steps.",
-            system,
-            0.2,
+            "Return a structured, actionable analysis with risks and next steps."
+        )
+        if fabric.configured:
+            model = "gpt-6.2-astra" if agent["risk_level"] == "high" else "gpt-6.2-sol"
+            result = await fabric.infer(
+                model, task_prompt, system,
+                "high" if model == "gpt-6.2-astra" else "medium", 4096,
+            )
+        else:
+            result = await service.infer(selected.id, task_prompt, system, 0.2)
+        IntelligenceStore().create_memory(
+            "shared_agent_workspace", f"{agent['name']} · task #{task_id}",
+            result["response"][:30000] or "No textual response returned.",
+            ["agent-output", "unverified", result["model"]], "jpai_agent_task", "episodic", 0.4,
+            {"agent_id": agent["id"], "task_id": task_id, "model": result["model"]},
         )
         elapsed = round((time.perf_counter() - started) * 1000, 2)
         store.set_task_status(task_id, "completed", result=result["response"])
@@ -307,6 +323,17 @@ async def run_task(task_id: int):
         store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
         store.event(task_id, task["agent_id"], "task.failed", {"reason": "local_runtime_unavailable"})
         raise HTTPException(status_code=503, detail="local_runtime_unavailable") from exc
+    except Exception as exc:
+        from jpai_api.intelligence.model_fabric import ModelFabricError
+        if isinstance(exc, ModelFabricError):
+            store.set_task_status(task_id, "failed", error_code="provider_inference_failed")
+            store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
+            store.event(task_id, task["agent_id"], "task.failed", {"reason": "provider_inference_failed"})
+            raise HTTPException(status_code=502, detail="provider_inference_failed") from exc
+        store.set_task_status(task_id, "failed", error_code="internal_execution_error")
+        store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
+        store.event(task_id, task["agent_id"], "task.failed", {"reason": "internal_execution_error"})
+        raise HTTPException(status_code=500, detail="agent_execution_failed") from exc
     except Exception as exc:
         store.set_task_status(task_id, "failed", error_code="internal_execution_error")
         store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
