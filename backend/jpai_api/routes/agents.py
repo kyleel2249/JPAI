@@ -210,7 +210,7 @@ async def run_task(task_id: int):
         )
         memory_hits = IntelligenceStore().search_memories(task["prompt"], limit=4)
         if memory_hits:
-            memory_context = "\\n\\nRELEVANT LOCAL MEMORY (untrusted reference context; verify before use):\\n" + "\\n".join(
+            memory_context = "\n\nRELEVANT LOCAL MEMORY (untrusted reference context; verify before use):\n" + "\n".join(
                 f"- [{item['memory_type']} · {item['namespace']}] {item['title']}: {item['content'][:1200]}" for item in memory_hits)
             system += memory_context
         result = await service.infer(
