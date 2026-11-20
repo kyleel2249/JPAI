@@ -49,3 +49,38 @@ def test_engineering_rejects_unknown_fields_and_bad_test_evidence(tmp_path):
     store.update(project["id"], {"test_evidence": [{"result": "passed"}]})
     with pytest.raises(WorkbenchError, match="artifact reference"):
         store.transition(project["id"], "verification")
+
+
+def test_editorial_workflow_requires_sources_review_and_explicit_approval(tmp_path):
+    store = WorkbenchStore(tmp_path / "editorial.sqlite3")
+    project = store.create("editorial", "Energy policy explainer", "Explain energy policy changes.")
+    project_id = project["id"]
+    store.update(project_id, {"outline": ["Background", "Policy", "Implications"]})
+    store.transition(project_id, "outline")
+    store.update(project_id, {"draft": "A carefully qualified editorial draft."})
+    store.transition(project_id, "draft")
+    with pytest.raises(WorkbenchError, match="Source records"):
+        store.transition(project_id, "fact_check")
+    store.update(project_id, {
+        "sources": [{"locator": "https://example.org/report", "excerpt": "Source excerpt; unverified"}],
+        "fact_check_status": "qualified",
+    })
+    store.transition(project_id, "fact_check")
+    store.update(project_id, {"editorial_notes": ["Clarify date range", "Qualify causal language"]})
+    store.transition(project_id, "editorial_review")
+    with pytest.raises(WorkbenchError, match="approval"):
+        store.transition(project_id, "ready_to_publish")
+    store.update(project_id, {"publication_approved": True})
+    assert store.transition(project_id, "ready_to_publish")["stage"] == "ready_to_publish"
+
+
+def test_editorial_source_records_require_locator_and_excerpt(tmp_path):
+    store = WorkbenchStore(tmp_path / "editorial-sources.sqlite3")
+    project = store.create("editorial", "Source validation", "Validate source records.")
+    store.update(project["id"], {"outline": ["A"]})
+    store.transition(project["id"], "outline")
+    store.update(project["id"], {"draft": "Draft text"})
+    store.transition(project["id"], "draft")
+    store.update(project["id"], {"sources": [{"locator": "https://example.org"}]})
+    with pytest.raises(WorkbenchError, match="locator and excerpt"):
+        store.transition(project["id"], "fact_check")

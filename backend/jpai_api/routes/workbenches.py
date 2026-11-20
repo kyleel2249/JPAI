@@ -41,6 +41,11 @@ def create_engineering_project(request: ProjectCreate):
     return get_store().create("engineering", request.title, request.brief)
 
 
+@router.post("/editorial", status_code=201)
+def create_editorial_project(request: ProjectCreate):
+    return get_store().create("editorial", request.title, request.brief)
+
+
 @router.get("")
 def list_projects(kind: str | None = Query(default=None, pattern="^(engineering|editorial)$"),
                   limit: int = Query(default=50, ge=1, le=100)):
