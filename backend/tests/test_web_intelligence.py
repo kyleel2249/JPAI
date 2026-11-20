@@ -339,3 +339,49 @@ def test_document_store_persistence_deduplication_and_search(tmp_path):
     results = store.search("inflation policy")
     assert results[0]["id"] == first["id"]
     assert "content" not in results[0]
+
+
+def test_document_upload_and_search_api(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from jpai_api.main import app
+    from jpai_api.routes import web_intelligence
+    from jpai_api.research.documents import DocumentStore
+
+    store = DocumentStore(str(tmp_path / "api-documents.sqlite3"))
+    monkeypatch.setattr(web_intelligence, "get_document_store", lambda: store)
+    client = TestClient(app)
+    uploaded = client.post(
+        "/api/v1/web-intelligence/documents",
+        files={"file": ("briefing.txt", b"Energy transition and infrastructure investment", "text/plain")},
+    )
+    assert uploaded.status_code == 201
+    document_id = uploaded.json()["document"]["id"]
+    assert uploaded.json()["trust"] == "unverified_user_supplied_document"
+    searched = client.get(
+        "/api/v1/web-intelligence/documents/search",
+        params={"q": "infrastructure investment"},
+    )
+    assert searched.status_code == 200
+    assert searched.json()["items"][0]["id"] == document_id
+    detail = client.get(f"/api/v1/web-intelligence/documents/{document_id}")
+    assert detail.status_code == 200
+    assert "Energy transition" in detail.json()["content"]
+
+
+def test_document_upload_api_rejects_unsupported_format(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from jpai_api.main import app
+    from jpai_api.routes import web_intelligence
+    from jpai_api.research.documents import DocumentStore
+
+    monkeypatch.setattr(
+        web_intelligence, "get_document_store",
+        lambda: DocumentStore(str(tmp_path / "reject.sqlite3")),
+    )
+    response = TestClient(app).post(
+        "/api/v1/web-intelligence/documents",
+        files={"file": ("payload.exe", b"not allowed", "application/octet-stream")},
+    )
+    assert response.status_code == 400
