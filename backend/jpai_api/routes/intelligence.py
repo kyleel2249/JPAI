@@ -4,7 +4,8 @@ import statistics
 from fastapi import APIRouter, HTTPException
 from jpai_api.config import get_settings
 from jpai_api.intelligence.runtime import LocalIntelligenceService, ModelNotFound, OllamaRuntime, RuntimeUnavailable
-from jpai_api.intelligence.schemas import (AutoInferenceRequest, BenchmarkRequest, InferenceRequest,\n    InferenceResponse, ModelComparisonRequest, ModelSelectionRequest)
+from jpai_api.intelligence.schemas import (AutoInferenceRequest, BenchmarkRequest, InferenceRequest,
+    InferenceResponse, ModelComparisonRequest, ModelSelectionRequest)
 
 router = APIRouter(prefix="/intelligence", tags=["local-intelligence"])
 
