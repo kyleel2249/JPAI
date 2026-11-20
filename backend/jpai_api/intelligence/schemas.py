@@ -25,7 +25,6 @@ class InferenceRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=100_000)
     system: str | None = Field(default=None, max_length=20_000)
     temperature: float = Field(default=0.2, ge=0, le=2)
-    agent_id: str | None = Field(default=None, max_length=128)
 
 
 class InferenceResponse(BaseModel):
