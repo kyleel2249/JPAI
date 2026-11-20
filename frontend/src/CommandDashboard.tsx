@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 type Model = { id:string; provider:string; display_name:string; capabilities:string[]; metrics?:{samples?:number;successes?:number;avg_latency_ms?:number} };
 type Agent = { id:string; name:string; domain:string; status:string };
 type Task = { id:number; title:string; status:string; agent_id:string };
