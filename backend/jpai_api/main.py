@@ -11,6 +11,7 @@ from jpai_api.routes.intelligence import router as intelligence_router
 from jpai_api.routes.memory import router as memory_router
 from jpai_api.routes.quality import router as quality_router
 from jpai_api.routes.routing import router as routing_router
+from jpai_api.routes.web_intelligence import router as web_intelligence_router
 
 settings = get_settings()
 app = FastAPI(
@@ -39,6 +40,7 @@ app.include_router(quality_router, prefix=settings.api_prefix)
 app.include_router(routing_router, prefix=settings.api_prefix)
 app.include_router(gateway_router, prefix=settings.api_prefix)
 app.include_router(agents_router, prefix=settings.api_prefix)
+app.include_router(web_intelligence_router, prefix=settings.api_prefix)
 
 
 @app.get("/", tags=["system"])
