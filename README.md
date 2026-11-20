@@ -4,6 +4,8 @@ Local-first personal, professional and enterprise intelligence platform.
 
 ## Current implementation
 
+- Governed API gateway ingress with capability allowlisting, optional API-key enforcement, request IDs, rate limiting and payload-size guardrails.
+
 - FastAPI backend and React/TypeScript command-centre dashboard.
 - Local Ollama model discovery and private inference.
 - Capability-aware routing with observed reliability, latency, provider preference and known context constraints.
@@ -37,4 +39,4 @@ JPAI core and persistent memory do not require external API keys. Local memory d
 
 Memory search currently uses transparent lexical relevance, not embeddings. Model routing uses operational heuristics, not a claimed measure of intelligence or reasoning quality.
 
-See [Phase 2.1 engineering notes](docs/PHASE_2_1_STABILISATION_AND_INTELLIGENCE.md).
+See [Phase 2.1 engineering notes](docs/PHASE_2_1_STABILISATION_AND_INTELLIGENCE.md) and [Phase 3 API Gateway notes](docs/PHASE_3_GOVERNED_API_GATEWAY.md).
