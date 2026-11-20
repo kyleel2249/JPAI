@@ -4,7 +4,9 @@
 - Provider-neutral local intelligence service boundary.
 - Ollama loopback-only adapter for runtime health, model discovery and text generation.
 - Typed model profiles and inference/selection/benchmark request contracts.
-- Capability-aware local model selection.
+- Capability-aware local model selection and automatic inference routing.
+- Parallel multi-model comparison with isolated per-model errors and a two-request concurrency cap.
+- Local dashboard controls for runtime status, model discovery, selection and inference.
 - Local model discovery, inference and latency benchmark API routes.
 - Bounded request sizes, temperature and benchmark iteration validation.
 - Explicit runtime-unavailable and unknown-model failure responses.
