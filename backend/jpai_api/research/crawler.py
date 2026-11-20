@@ -81,6 +81,9 @@ class CrawlerStore:
             CREATE INDEX IF NOT EXISTS idx_crawled_pages_job ON crawled_pages(job_id);
             CREATE INDEX IF NOT EXISTS idx_crawled_pages_fetched ON crawled_pages(fetched_at DESC);
             """)
+            columns={row[1] for row in db.execute("PRAGMA table_info(crawled_pages)").fetchall()}
+            if "memory_id" not in columns:
+                db.execute("ALTER TABLE crawled_pages ADD COLUMN memory_id INTEGER")
     def _connect(self):
         db=sqlite3.connect(self.path,timeout=15); db.row_factory=sqlite3.Row
         db.execute("PRAGMA journal_mode=WAL"); db.execute("PRAGMA foreign_keys=ON"); return db
@@ -130,6 +133,13 @@ class CrawlerStore:
             if score:
                 item["relevance"]=score; item["excerpt"]=item["content"][:420]; item.pop("content"); ranked.append(item)
         return sorted(ranked,key=lambda x:(x["relevance"],x["fetched_at"]),reverse=True)[:limit]
+    def get_page(self,page_id):
+        with self._connect() as db:
+            row=db.execute("SELECT * FROM crawled_pages WHERE id=?",(page_id,)).fetchone()
+        return dict(row) if row else None
+    def mark_page_memory(self,page_id,memory_id):
+        with self._connect() as db:
+            db.execute("UPDATE crawled_pages SET memory_id=? WHERE id=?",(memory_id,page_id))
     def stats(self):
         with self._connect() as db:
             return {"pages_stored":db.execute("SELECT COUNT(*) FROM crawled_pages").fetchone()[0],
