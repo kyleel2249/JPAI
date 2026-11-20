@@ -86,6 +86,11 @@ def create_agent(request: AgentCreate):
     if store.get_agent(request.id):
         raise HTTPException(status_code=409, detail="agent_id_already_exists")
     agent = request.model_dump()
+    valid_domains = {category["id"] for category in CATEGORIES}
+    if agent["domain"] not in valid_domains:
+        raise HTTPException(status_code=422, detail="unknown_professional_domain")
+    if agent["domain"] in {"fintech_quant", "cybersecurity"}:
+        agent["risk_level"] = "high"
     agent["roles"] = list(dict.fromkeys(role.strip() for role in agent["roles"] if role.strip()))
     agent["capabilities"] = list(dict.fromkeys(
         capability.strip().lower() for capability in agent["capabilities"] if capability.strip()
