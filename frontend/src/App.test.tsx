@@ -28,3 +28,16 @@ describe("JPAI command centre", () => {
     expect(screen.getByText(/capture a memory/i)).toBeTruthy();
   });
 });
+
+
+  it("opens the quality governance workspace", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: "ok", service: "JPAI", environment: "test", mode: "local-first" }),
+    }));
+    render(<App />);
+    fireEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: /Quality & Improvement/ }));
+    expect(screen.getByRole("heading", { name: /continuous improvement control/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /issue resolution protocol/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /root-cause governance/i })).toBeTruthy();
+  });
