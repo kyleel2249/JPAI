@@ -1,7 +1,7 @@
 """Governed web discovery, scheduled monitoring, extraction and local search API."""
 from functools import lru_cache
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 
 from jpai_api.intelligence.persistence import IntelligenceStore
@@ -52,7 +52,7 @@ class ScheduleUpdate(BaseModel):
 
 
 @router.post("/documents", status_code=201)
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(file: UploadFile):
     filename = file.filename or ""
     try:
         payload = await file.read(MAX_DOCUMENT_BYTES + 1)
