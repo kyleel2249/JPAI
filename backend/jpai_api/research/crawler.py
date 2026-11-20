@@ -110,12 +110,18 @@ class PageExtractor(HTMLParser):
         self.links = []
         self.meta = {}
         self.headings = []
+        self.structured_data = []
+        self._jsonld_depth = 0
+        self._jsonld_parts = []
         self._title = False
         self._heading = None
         self._skip_tags = []
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
+        if tag == "script" and attrs.get("type", "").split(";", 1)[0].strip().lower() == "application/ld+json":
+            self._jsonld_depth += 1
+            self._jsonld_parts = []
         if tag in {"script", "style", "noscript", "svg", "template"}:
             self._skip_tags.append(tag)
         if tag == "title":
@@ -130,6 +136,17 @@ class PageExtractor(HTMLParser):
                 self.meta[key.lower()] = attrs["content"][:1000]
 
     def handle_endtag(self, tag):
+        if tag == "script" and self._jsonld_depth:
+            raw = "".join(self._jsonld_parts).strip()
+            self._jsonld_depth -= 1
+            self._jsonld_parts = []
+            if raw and len(self.structured_data) < 25 and len(raw) <= 50000:
+                try:
+                    value = json.loads(raw)
+                    if isinstance(value, (dict, list)):
+                        self.structured_data.append(value)
+                except (json.JSONDecodeError, RecursionError):
+                    pass
         if tag in self._skip_tags:
             self._skip_tags.remove(tag)
         if tag == "title":
@@ -139,6 +156,10 @@ class PageExtractor(HTMLParser):
             self._heading = None
 
     def handle_data(self, data):
+        if self._jsonld_depth:
+            if sum(map(len, self._jsonld_parts)) + len(data) <= 50000:
+                self._jsonld_parts.append(data)
+            return
         value = re.sub(r"\s+", " ", data).strip()
         if not value or self._skip_tags:
             return
@@ -203,6 +224,7 @@ class CrawlerStore:
               canonical_url TEXT, domain TEXT NOT NULL, title TEXT NOT NULL DEFAULT '',
               description TEXT NOT NULL DEFAULT '', content TEXT NOT NULL DEFAULT '',
               headings_json TEXT NOT NULL DEFAULT '[]', metadata_json TEXT NOT NULL DEFAULT '{}',
+              structured_data_json TEXT NOT NULL DEFAULT '[]',
               status_code INTEGER NOT NULL, content_type TEXT NOT NULL, content_hash TEXT NOT NULL,
               fetched_at TEXT NOT NULL, memory_id INTEGER,
               FOREIGN KEY(job_id) REFERENCES crawl_jobs(id) ON DELETE CASCADE);
@@ -235,6 +257,10 @@ class CrawlerStore:
             page_columns = {row[1] for row in db.execute("PRAGMA table_info(crawled_pages)")}
             if "memory_id" not in page_columns:
                 db.execute("ALTER TABLE crawled_pages ADD COLUMN memory_id INTEGER")
+            if "structured_data_json" not in page_columns:
+                db.execute(
+                    "ALTER TABLE crawled_pages ADD COLUMN structured_data_json TEXT NOT NULL DEFAULT '[]'"
+                )
 
     def _connect(self):
         db = sqlite3.connect(self.path, timeout=20)
@@ -368,18 +394,21 @@ class CrawlerStore:
                 previous_title = old["title"]
                 db.execute(
                     """UPDATE crawled_pages SET job_id=?,domain=?,title=?,description=?,content=?,
-                       headings_json=?,metadata_json=?,status_code=?,content_type=?,content_hash=?,
-                       fetched_at=? WHERE id=?""",
+                       headings_json=?,metadata_json=?,structured_data_json=?,status_code=?,
+                       content_type=?,content_hash=?,fetched_at=? WHERE id=?""",
                     (job_id, domain, title, description, content, json.dumps(parsed.headings[:80]),
-                     json.dumps(parsed.meta), status_code, content_type, normalized_hash, now, page_id),
+                     json.dumps(parsed.meta), json.dumps(parsed.structured_data[:25])[:250000],
+                     status_code, content_type, normalized_hash, now, page_id),
                 )
             else:
                 cursor = db.execute(
                     """INSERT INTO crawled_pages(job_id,url,domain,title,description,content,
-                       headings_json,metadata_json,status_code,content_type,content_hash,fetched_at)
-                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                       headings_json,metadata_json,structured_data_json,status_code,content_type,
+                       content_hash,fetched_at)
+                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (job_id, url, domain, title, description, content, json.dumps(parsed.headings[:80]),
-                     json.dumps(parsed.meta), status_code, content_type, normalized_hash, now),
+                     json.dumps(parsed.meta), json.dumps(parsed.structured_data[:25])[:250000],
+                     status_code, content_type, normalized_hash, now),
                 )
                 page_id = cursor.lastrowid
                 previous_hash = None
@@ -447,7 +476,14 @@ class CrawlerStore:
     def get_page(self, page_id):
         with self._connect() as db:
             row = db.execute("SELECT * FROM crawled_pages WHERE id=?", (page_id,)).fetchone()
-        return dict(row) if row else None
+        if not row:
+            return None
+        item = dict(row)
+        try:
+            item["structured_data"] = json.loads(item.pop("structured_data_json", "[]"))
+        except (TypeError, json.JSONDecodeError):
+            item["structured_data"] = []
+        return item
 
     def mark_page_memory(self, page_id, memory_id):
         with self._connect() as db:
@@ -482,6 +518,9 @@ class CrawlerStore:
                 "schedules_total": db.execute("SELECT COUNT(*) FROM crawl_schedules").fetchone()[0],
                 "changes_detected": db.execute("SELECT COUNT(*) FROM crawl_change_events").fetchone()[0],
                 "versions_stored": db.execute("SELECT COUNT(*) FROM crawled_page_versions").fetchone()[0],
+                "pages_with_structured_data": db.execute(
+                    "SELECT COUNT(*) FROM crawled_pages WHERE structured_data_json != '[]'"
+                ).fetchone()[0],
             }
 
 
