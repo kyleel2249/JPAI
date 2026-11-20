@@ -322,7 +322,7 @@ def test_document_extraction_enforces_upload_size_and_utf8():
     with pytest.raises(DocumentExtractionError):
         extract_document("large.txt", b"x" * (MAX_DOCUMENT_BYTES + 1))
     with pytest.raises(DocumentExtractionError):
-        extract_document("invalid.txt", b"\\xff\\xfe")
+        extract_document("invalid.txt", b"\xff\xfe")
 
 
 def test_document_store_persistence_deduplication_and_search(tmp_path):
