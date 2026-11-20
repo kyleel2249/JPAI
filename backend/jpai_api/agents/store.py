@@ -141,16 +141,47 @@ class AgentStore:
                 rows = db.execute("SELECT * FROM agent_tasks ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
             return [self._task(row) for row in rows]
 
-    def claim_task(self, task_id):
-        """Atomically claim a queued or retryable task exactly once."""
+    def approve_task(self, task_id):
+        """Approve a pending task and append its audit event in one transaction."""
         with self._connect() as db:
+            cur = db.execute(
+                """UPDATE agent_tasks SET approval_status='approved',updated_at=CURRENT_TIMESTAMP
+                WHERE id=? AND status='queued' AND requires_approval=1
+                AND approval_status='pending'""",
+                (task_id,),
+            )
+            if cur.rowcount != 1:
+                return False
+            row = db.execute("SELECT agent_id FROM agent_tasks WHERE id=?", (task_id,)).fetchone()
+            db.execute(
+                """INSERT INTO agent_events(task_id,agent_id,event_type,detail_json)
+                VALUES(?,?,?,?)""",
+                (task_id, row["agent_id"], "task.approved",
+                 json.dumps({"approved_via": "explicit_api_action"})),
+            )
+            return True
+
+    def claim_task(self, task_id):
+        """Atomically claim a queued or retryable task and record its start event."""
+        with self._connect() as db:
+            row = db.execute("SELECT agent_id FROM agent_tasks WHERE id=?", (task_id,)).fetchone()
+            if row is None:
+                return False
             cur = db.execute(
                 """UPDATE agent_tasks SET status='running',updated_at=CURRENT_TIMESTAMP
                 WHERE id=? AND status IN ('queued','failed')
                 AND (requires_approval=0 OR approval_status='approved')""",
                 (task_id,),
             )
-            return cur.rowcount == 1
+            if cur.rowcount != 1:
+                return False
+            db.execute(
+                """INSERT INTO agent_events(task_id,agent_id,event_type,detail_json)
+                VALUES(?,?,?,?)""",
+                (task_id, row["agent_id"], "task.started",
+                 json.dumps({"execution_mode": "local_model_analysis_only"})),
+            )
+            return True
 
     def set_task_status(self, task_id, status, result=None, error_code=None, approval_status=None):
         with self._connect() as db:
