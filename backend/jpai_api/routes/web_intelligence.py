@@ -52,6 +52,8 @@ def status():
             "max_depth": 2,
             "minimum_delay_seconds": 1,
             "minimum_schedule_interval_minutes": 15,
+            "max_jsonld_blocks_per_page": 25,
+            "max_jsonld_block_bytes": 50000,
         },
         **get_store().stats(),
     }
@@ -116,6 +118,22 @@ def update_schedule(schedule_id: int, request: ScheduleUpdate):
 def list_changes(limit: int = Query(default=100, ge=1, le=500)):
     items = get_store().list_changes(limit)
     return {"count": len(items), "items": items}
+
+
+@router.get("/pages/{page_id}/structured-data")
+def get_page_structured_data(page_id: int):
+    page = get_store().get_page(page_id)
+    if not page:
+        raise HTTPException(status_code=404, detail="crawled_page_not_found")
+    records = page.get("structured_data", [])
+    return {
+        "page_id": page_id,
+        "url": page["url"],
+        "count": len(records),
+        "items": records,
+        "format": "schema.org JSON-LD",
+        "trust": "unverified_external_metadata",
+    }
 
 
 @router.get("/pages/{page_id}/versions")
