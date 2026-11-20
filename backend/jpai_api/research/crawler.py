@@ -151,9 +151,19 @@ class WebCrawler:
         self.store=store or CrawlerStore(); self.delay_seconds=max(1.0,min(delay_seconds,10.0))
     def _get(self,client,url):
         safe=validate_public_url(url)
-        response=client.get(safe,headers={"User-Agent":USER_AGENT,"Accept":"text/html,application/xhtml+xml"})
-        if len(response.content)>MAX_PAGE_BYTES: raise CrawlPolicyError("Page exceeded response-size limit")
-        return response
+        headers={"User-Agent":USER_AGENT,"Accept":"text/html,application/xhtml+xml"}
+        with client.stream("GET",safe,headers=headers) as response:
+            length=response.headers.get("content-length")
+            if length and length.isdigit() and int(length)>MAX_PAGE_BYTES:
+                raise CrawlPolicyError("Page exceeded response-size limit")
+            chunks=[]; total=0
+            for chunk in response.iter_bytes():
+                total+=len(chunk)
+                if total>MAX_PAGE_BYTES:
+                    raise CrawlPolicyError("Page exceeded response-size limit")
+                chunks.append(chunk)
+            return httpx.Response(response.status_code,headers=response.headers,
+                                  content=b"".join(chunks),request=response.request)
     def run(self,job_id):
         job=self.store.get_job(job_id)
         if not job:return
