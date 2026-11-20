@@ -1,7 +1,6 @@
 """Persistent, evidence-gated quality cycles and root-cause issue resolution."""
 from __future__ import annotations
 
-import json
 import os
 import sqlite3
 from pathlib import Path
@@ -82,10 +81,13 @@ class QualityStore:
             if expected_index >= len(CYCLE_STAGES) or CYCLE_STAGES[expected_index] != stage:
                 return None, "cycle_stage_out_of_order"
             status = "completed" if stage == "verify" else "in_progress"
-            db.execute(
-                "UPDATE quality_cycles SET current_stage=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
-                (stage, status, cycle_id),
+            cur = db.execute(
+                """UPDATE quality_cycles SET current_stage=?,status=?,updated_at=CURRENT_TIMESTAMP
+                WHERE id=? AND current_stage=? AND status='in_progress'""",
+                (stage, status, cycle_id, row["current_stage"]),
             )
+            if cur.rowcount != 1:
+                return None, "cycle_stage_out_of_order"
             db.execute(
                 "INSERT INTO quality_events(record_type,record_id,stage,evidence) VALUES('cycle',?,?,?)",
                 (cycle_id, stage, evidence),
@@ -121,10 +123,13 @@ class QualityStore:
             if expected_index >= len(ISSUE_STAGES) or ISSUE_STAGES[expected_index] != stage:
                 return None, "issue_stage_out_of_order"
             field = field_by_stage[stage]
-            db.execute(
-                f"UPDATE quality_issues SET {field}=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
-                (evidence, stage, issue_id),
+            cur = db.execute(
+                f"""UPDATE quality_issues SET {field}=?,status=?,updated_at=CURRENT_TIMESTAMP
+                WHERE id=? AND status=?""",
+                (evidence, stage, issue_id, row["status"]),
             )
+            if cur.rowcount != 1:
+                return None, "issue_stage_out_of_order"
             db.execute(
                 "INSERT INTO quality_events(record_type,record_id,stage,evidence) VALUES('issue',?,?,?)",
                 (issue_id, stage, evidence),
