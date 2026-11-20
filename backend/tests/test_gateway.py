@@ -60,8 +60,10 @@ def _run_middleware(middleware, content_length=None, requests=1):
             await middleware(scope, receive, send)
 
     asyncio.run(run())
-    start = next(message for message in sent if message["type"] == "http.response.start")
-    body = next(message for message in sent if message["type"] == "http.response.body")
+    starts = [message for message in sent if message["type"] == "http.response.start"]
+    bodies = [message for message in sent if message["type"] == "http.response.body"]
+    start = starts[-1]
+    body = bodies[-1]
     return start["status"], dict(start["headers"]), json.loads(body["body"])
 
 
