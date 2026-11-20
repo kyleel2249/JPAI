@@ -4,7 +4,6 @@ import json
 import os
 import sqlite3
 from pathlib import Path
-from typing import Any
 
 class IntelligenceStore:
     def __init__(self, database_path: str | None = None) -> None:

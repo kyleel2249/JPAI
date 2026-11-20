@@ -8,7 +8,7 @@ import math
 import time
 import uuid
 from collections import defaultdict, deque
-from typing import Callable
+from collections.abc import Callable
 
 
 class GatewayMiddleware:
