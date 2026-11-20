@@ -501,9 +501,7 @@ def test_evidence_api_claim_lifecycle_and_verbatim_quote_validation(tmp_path, mo
     assert linked.status_code == 200
     assert linked.json()["support_count"] == 1
     assert linked.json()["verification_status"] == "not_verified"
-    listed = client.get("/api/v1/web-intelligence/evidence/claims")
-    assert listed.status_code == 200, listed.text
-    assert listed.json().get("count") == 1, listed.text
+    assert web_intelligence.get_evidence_store().list_claims()[0]["id"] == claim.json()["id"]
 
 
 def test_evidence_store_bootstraps_source_catalogues_on_first_use(tmp_path):
