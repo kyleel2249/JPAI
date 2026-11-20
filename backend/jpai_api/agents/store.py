@@ -68,7 +68,11 @@ class AgentStore:
 
     @staticmethod
     def _task(row):
-        return dict(row) if row else None
+        if row is None:
+            return None
+        item = dict(row)
+        item["requires_approval"] = bool(item["requires_approval"])
+        return item
 
     def list_agents(self, domain=None, status=None):
         query = "SELECT * FROM agents WHERE 1=1"

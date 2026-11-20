@@ -89,6 +89,7 @@ def create_agent(request: AgentCreate):
     agent = request.model_dump()
     valid_domains = {category["id"] for category in CATEGORIES}
     valid_domains.update(agent["domain"] for agent in AGENT_BLUEPRINTS)
+    valid_domains.update(agent["id"] for agent in AGENT_BLUEPRINTS)
     if agent["domain"] not in valid_domains:
         raise HTTPException(status_code=422, detail="unknown_professional_domain")
     if agent["domain"] in {"fintech_quant", "cybersecurity"}:
