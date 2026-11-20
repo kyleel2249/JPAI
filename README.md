@@ -17,6 +17,8 @@ Local-first personal, professional and enterprise intelligence platform.
 - Capability-aware specialist recommendations with explicit skill filters, task relevance, observed outcomes and explainable ranking reasons.
 - Dashboard surfaces specialist recommendations, workforce scorecards and governance events.
 - Dashboard workspaces for intelligence, memory, agents, quality governance, research, creative, engineering, business, finance, automation, security and system monitoring.
+- Phases 21–30 governed operations kernel: personal intelligence/JPTI scope, decision intelligence, project-execution plans, adaptive-learning reviews, tool governance, software delivery evidence, command-centre metrics, device/sync governance, security assurance and reliability certification records.
+- Persistent phase 21–30 project register with field allowlists, bounded evidence payloads, sequential fail-closed gates, explicit final approvals and durable audit history. This is a record-and-review workflow, not an external action executor.
 - Evidence-gated continuous improvement cycles and sequential issue resolution with root-cause, corrective-action, test and verification records.
 - Quality audit trail persisted in the same local SQLite database as JPAI's other operational records.
 - Governed Web Intelligence crawler with same-origin discovery, robots.txt handling, bounded HTML extraction, SHA-256 source fingerprints, persistent crawl jobs and local search.
@@ -66,6 +68,8 @@ Web Intelligence collects public HTML and supports local PDF, DOCX, TXT, Markdow
 - [Quality governance acceptance](docs/QUALITY_GOVERNANCE_ACCEPTANCE.md)
 - [Web Intelligence & Research Engine](docs/WEB_INTELLIGENCE.md)
 - [Professional specialisation catalogue](docs/PROFESSIONAL_SPECIALISATIONS.md)
+- [Phases 21–30 advanced platform](docs/PHASE_21_30.md)
+- [Phases 21–30 acceptance checklist](docs/PHASE_21_30_ACCEPTANCE.md)
 
 ## API gateway configuration
 

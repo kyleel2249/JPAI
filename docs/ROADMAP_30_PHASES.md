@@ -27,20 +27,20 @@
 18. T-Bots Universal Trading Intelligence — universal market scope, data quality, strategy research, backtest/paper evidence, risk limits and deployment-eligibility governance; no live order execution.
 19. Business & Enterprise Automation, including ELSIM — process maps, workflow design, permissions, simulation, owner approval and scoped action allowlists; execution adapters remain separate.
 20. Media & Journalism Intelligence, including X-STUDIOS — assignment, sourced research, drafts, fact-check, editorial review, corrections and publication approval.
-21. Personal Intelligence & JPTI Integration.
+21. Personal Intelligence & JPTI Integration — personal profile, preferences, privacy review and scoped read-only JPTI integration governance.
 
 ## Stage V — Advanced Autonomy & Intelligence
-22. Advanced Reasoning & Decision Intelligence.
-23. Autonomous Project Execution.
-24. Adaptive Learning & Agent Evolution.
-25. Advanced Automation & Tool Intelligence.
-26. Autonomous Software Development.
+22. Advanced Reasoning & Decision Intelligence — evidence-based alternatives, risk assessment and reviewed decision records.
+23. Autonomous Project Execution — task graphs, simulation, acceptance evidence and release governance; execution adapters remain separately gated.
+24. Adaptive Learning & Agent Evolution — feedback capture, evaluation datasets, measured proposals and human-approved adaptation.
+25. Advanced Automation & Tool Intelligence — tool inventory, least-privilege scopes, threat review and simulation before any executor integration.
+26. Autonomous Software Development — requirements, design, implementation references, tests, security review and release approval.
 
 ## Stage VI — Interface, Security & World-Class Optimisation
-27. World-Class JPAI Command Centre.
-28. Desktop & Android Ecosystem.
-29. Enterprise Security & Governance.
-30. Performance & Reliability Engineering.
-31. Final Integration & Operational Certification.
+27. World-Class JPAI Command Centre — unified operational telemetry, directorate status, alerts and operator review.
+28. Desktop & Android Ecosystem — device inventory, encrypted sync policy, pairing governance and client compatibility.
+29. Enterprise Security & Governance — threat modelling, access review, policy governance and incident readiness.
+30. Performance & Reliability Engineering — SLOs, load-test evidence, backup/restore validation and recovery drills.
+31. Final Integration & Operational Certification — cross-domain integration, production acceptance, recovery rehearsal and operational sign-off.
 
 Phases may be dependency-aware and partially parallelised where safe. A phase is not complete because its documentation exists: completion requires working implementation, tests, security review, failure/recovery checks and evidence against acceptance criteria. Every phase follows the continuous Build → Reassess → Improve → Test → Verify cycle and the mandatory assess → identify → determine root cause → fix → test → verify issue-resolution protocol.
