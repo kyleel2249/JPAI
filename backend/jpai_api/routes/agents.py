@@ -1,13 +1,12 @@
 """Professional specialist registry and governed multi-agent orchestration API."""
 import asyncio
-import re
 import time
 from functools import lru_cache
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from jpai_api.agents.professional_catalog import AGENT_BLUEPRINTS, CATEGORIES, PROFESSIONAL_IDENTITY
+from jpai_api.agents.professional_catalog import CATEGORIES, PROFESSIONAL_IDENTITY
 from jpai_api.agents.store import AgentStore
 from jpai_api.intelligence.runtime import ModelNotFound, RuntimeUnavailable
 from jpai_api.routes.intelligence import get_service
