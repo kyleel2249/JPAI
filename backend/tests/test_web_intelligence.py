@@ -50,11 +50,13 @@ def test_public_url_normalized(monkeypatch):
     assert validate_public_url("https://example.com/path#section") == "https://example.com/path"
 
 
-def test_credentials_and_non_http_rejected():
+def test_credentials_non_http_and_invalid_port_rejected():
     with pytest.raises(CrawlPolicyError):
         validate_public_url("file:///etc/passwd")
     with pytest.raises(CrawlPolicyError):
         validate_public_url("https://user:pass@example.com")
+    with pytest.raises(CrawlPolicyError):
+        validate_public_url("https://example.com:99999")
 
 
 def test_html_extraction():
@@ -183,3 +185,24 @@ def test_scheduler_creates_and_executes_due_job(tmp_path, monkeypatch):
     assert job["schedule_id"] == schedule["id"]
     assert job["status"] == "completed"
     assert store.get_schedule(schedule["id"])["last_job_id"] == job["id"]
+
+
+
+def test_http_connection_uses_the_pinned_public_ip(monkeypatch):
+    from jpai_api.research.crawler import _PinnedHTTPConnection
+
+    calls = []
+
+    class FakeSocket:
+        def close(self):
+            return None
+
+    def fake_create_connection(address, timeout):
+        calls.append((address, timeout))
+        return FakeSocket()
+
+    monkeypatch.setattr(socket, "create_connection", fake_create_connection)
+    connection = _PinnedHTTPConnection("example.com", 80, "93.184.216.34", 15)
+    connection.connect()
+    connection.close()
+    assert calls == [(("93.184.216.34", 80), 15)]
