@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import WebIntelligence from "./WebIntelligence";
 import Directorates from "./Directorates";
-import ModelFabric from "./ModelFabric";\nimport CommandDashboard from "./CommandDashboard";
+import ModelFabric from "./ModelFabric";
+import CommandDashboard from "./CommandDashboard";
 import RealityStudio from "./RealityStudio";
 type Health={status:string;service:string;environment:string;mode:string};
 type Model={id:string;provider:string;display_name:string;family?:string;parameter_size?:string;capabilities:string[];metrics?:{samples?:number;successes?:number;failures?:number;avg_latency_ms?:number}};
