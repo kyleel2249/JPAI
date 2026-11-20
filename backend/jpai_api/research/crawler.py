@@ -119,8 +119,8 @@ class CrawlerStore:
                status_code,content_type,content_hash,now))
     def list_pages(self,job_id=None,limit=50):
         with self._connect() as db:
-            if job_id: rows=db.execute("SELECT id,job_id,url,domain,title,description,status_code,content_type,content_hash,fetched_at FROM crawled_pages WHERE job_id=? ORDER BY fetched_at DESC LIMIT ?",(job_id,limit))
-            else: rows=db.execute("SELECT id,job_id,url,domain,title,description,status_code,content_type,content_hash,fetched_at FROM crawled_pages ORDER BY fetched_at DESC LIMIT ?",(limit,))
+            if job_id: rows=db.execute("SELECT id,job_id,url,domain,title,description,status_code,content_type,content_hash,fetched_at,memory_id FROM crawled_pages WHERE job_id=? ORDER BY fetched_at DESC LIMIT ?",(job_id,limit))
+            else: rows=db.execute("SELECT id,job_id,url,domain,title,description,status_code,content_type,content_hash,fetched_at,memory_id FROM crawled_pages ORDER BY fetched_at DESC LIMIT ?",(limit,))
             return [dict(r) for r in rows]
     def search_pages(self,query,limit=20):
         terms=[t.lower() for t in re.findall(r"[\w-]{2,}",query)][:12]
