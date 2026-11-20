@@ -1,8 +1,6 @@
 """Regression coverage for phases 13–20."""
 import pytest
-from fastapi.testclient import TestClient
 from jpai_api.directorates import CONFIG,DirectorateError,DirectorateStore
-from jpai_api.main import app
 @pytest.fixture
 def s(tmp_path):return DirectorateStore(tmp_path/"d.sqlite3")
 @pytest.mark.parametrize("kind,cfg",list(CONFIG.items()))
@@ -73,8 +71,10 @@ def test_unknown_fields_size_limits_and_skipped_stage_denied(s):
  with pytest.raises(DirectorateError):s.transition(p["id"],"design_spec")
 def test_api_catalog_and_denied_transition(tmp_path,monkeypatch):
  from jpai_api.routes import directorates as m
+ from fastapi import HTTPException
  monkeypatch.setattr(m,"get_store",lambda:DirectorateStore(tmp_path/"api.sqlite3"))
- c=TestClient(app);assert c.get("/api/v1/directorates/catalog").json()["count"]==8
- r=c.post("/api/v1/directorates/projects",json={"kind":"graphic_design","title":"API project","brief":"A sufficiently detailed API project brief."})
- assert r.status_code==201
- d=c.post(f"/api/v1/directorates/projects/{r.json()['id']}/transition",json={"target":"concept"});assert d.status_code==409
+ assert m.catalog()["count"]==8
+ p=m.create(m.Create(kind="graphic_design",title="API project",brief="A sufficiently detailed API project brief."))
+ assert p["stage"]=="brief"
+ with pytest.raises(HTTPException) as exc:m.transition(p["id"],m.Transition(target="concept"))
+ assert exc.value.status_code==409

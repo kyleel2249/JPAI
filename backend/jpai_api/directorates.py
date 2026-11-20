@@ -16,7 +16,7 @@ GATES={
 "graphic_design":{"concept":"creative_brief","design_spec":"design_direction","asset_production":"design_spec","review":"asset_manifest","approved":"review_checklist"},
 "video_audio_animation":{"script":"creative_brief","storyboard":"script","production_plan":"storyboard","post_production":"production_evidence","approved":"final_review"},
 "digital_experience":{"requirements":"research_findings","ux_design":"requirements","implementation":"ux_spec","quality_assurance":"implementation_artifacts","launch_ready":"qa_evidence"},
-"business_marketing":{"strategy":"customer_research","campaign_design":"marketing_strategy","activation":"campaign_assets","measurement":"activation_approval","optimization":"performance_metrics"},
+"business_marketing":{"strategy":"customer_research","campaign_design":"marketing_strategy","activation":"campaign_assets","measurement":"performance_metrics","optimization":"improvement_actions"},
 "financial_intelligence":{"data_mapping":"data_sources","analysis":"data_mapping","risk_review":"analysis_notes","reporting":"risk_review","approved":"financial_report"},
 "trading_intelligence":{"data_validation":"market_universe","strategy_research":"data_quality_report","backtest_review":"strategy_spec","paper_trading":"backtest_evidence","deployment_eligible":"paper_trade_evidence"},
 "enterprise_automation":{"workflow_design":"process_map","permissions_review":"workflow_spec","simulation":"permissions_review","approval":"simulation_evidence","enabled":"owner_approval"},
