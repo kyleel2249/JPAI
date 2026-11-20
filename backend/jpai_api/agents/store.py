@@ -121,7 +121,8 @@ class AgentStore:
                        (agent_id,))
             db.execute("INSERT INTO agent_events(task_id,agent_id,event_type) VALUES(?,?,?)",
                        (task_id, agent_id, "task.created"))
-            return self.get_task(task_id)
+            row = db.execute("SELECT * FROM agent_tasks WHERE id=?", (task_id,)).fetchone()
+            return self._task(row)
 
     def get_task(self, task_id):
         with self._connect() as db:
