@@ -401,7 +401,7 @@ def test_evidence_index_unifies_web_and_document_sources_and_preserves_provenanc
         _parser("Energy outlook", "Renewable energy investment increased during the reporting period."),
         200, "text/html", "raw-hash",
     )
-    document = documents.save(extract_document(
+    documents.save(extract_document(
         "energy-brief.txt", b"Renewable energy investment increased during the reporting period."
     ))
     evidence = EvidenceStore(path)
