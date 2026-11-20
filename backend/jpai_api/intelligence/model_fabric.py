@@ -178,15 +178,33 @@ class OpenAIResponsesRuntime:
         async with self.semaphore:
             try:
                 async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-                    response = await client.post(
-                        self.base_url + "/responses", json=payload,
-                        headers={"Authorization": "Bearer " + self.api_key,
-                                 "Content-Type": "application/json"},
-                    )
-                    response.raise_for_status()
-                    data = response.json()
+                    data = None
+                    for attempt in range(3):
+                        try:
+                            response = await client.post(
+                                self.base_url + "/responses", json=payload,
+                                headers={"Authorization": "Bearer " + self.api_key,
+                                         "Content-Type": "application/json"},
+                            )
+                            if response.status_code in {429, 500, 502, 503, 504} and attempt < 2:
+                                retry_after = response.headers.get("retry-after", "")
+                                try:
+                                    delay = min(3.0, max(0.2, float(retry_after)))
+                                except ValueError:
+                                    delay = 0.25 * (2 ** attempt)
+                                await asyncio.sleep(delay)
+                                continue
+                            response.raise_for_status()
+                            data = response.json()
+                            break
+                        except (httpx.TimeoutException, httpx.TransportError):
+                            if attempt >= 2:
+                                raise
+                            await asyncio.sleep(0.25 * (2 ** attempt))
+                    if data is None:
+                        raise ModelFabricError("Provider returned no response after bounded retries.")
             except (httpx.HTTPError, ValueError) as exc:
-                raise ModelFabricError("Provider inference failed; inspect provider status and telemetry.") from exc
+                raise ModelFabricError("Provider inference failed after bounded retries; inspect provider status and telemetry.") from exc
 
         usage = data.get("usage") or {}
         output = data.get("output") or []
