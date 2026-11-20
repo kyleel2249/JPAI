@@ -101,14 +101,16 @@ export default function WebIntelligence() {
         request("/api/v1/web-intelligence/pages"),
         request("/api/v1/web-intelligence/schedules"),
         request("/api/v1/web-intelligence/changes?limit=30"),
-        request("/api/v1/web-intelligence/documents"),\n        request("/api/v1/web-intelligence/evidence/claims"),
+        request("/api/v1/web-intelligence/documents"),
+        request("/api/v1/web-intelligence/evidence/claims"),
       ]);
       setStats(status);
       setJobs(jobData.items ?? []);
       setPages(pageData.items ?? []);
       setSchedules(scheduleData.items ?? []);
       setChanges(changeData.items ?? []);
-      setDocuments(documentData.items ?? []);\n      setEvidenceClaims(claimData.items ?? []);
+      setDocuments(documentData.items ?? []);
+      setEvidenceClaims(claimData.items ?? []);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Unable to load web intelligence");
     }
