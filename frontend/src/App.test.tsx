@@ -6,7 +6,7 @@ import App from "./App";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("JPAI command centre", () => {
-  it("renders the product identity and institutional overview", () => {
+  it("renders the premium command centre and live-data panels", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ status: "ok", service: "JPAI", environment: "test", mode: "local-first" }),
