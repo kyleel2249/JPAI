@@ -23,6 +23,11 @@ type Version = {
 };
 type StructuredRecord = Record<string, unknown>;
 type StructuredData = { count: number; items: StructuredRecord[]; trust: string };
+type ResearchDocument = {
+  id: number; filename: string; file_type: string; content_hash: string;
+  extracted_chars: number; page_count?: number | null; uploaded_at: string;
+  memory_id?: number | null; relevance?: number; excerpt?: string;
+};
 
 const api = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const key = import.meta.env.VITE_JPAI_API_KEY ?? "";
@@ -50,30 +55,35 @@ export default function WebIntelligence() {
   const [changes, setChanges] = useState<Change[]>([]);
   const [versions, setVersions] = useState<Record<number, Version[]>>({});
   const [structuredData, setStructuredData] = useState<Record<number, StructuredData>>({});
+  const [documents, setDocuments] = useState<ResearchDocument[]>([]);
+  const [documentQuery, setDocumentQuery] = useState("");
+  const [documentResults, setDocumentResults] = useState<ResearchDocument[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [query, setQuery] = useState("");
   const [stats, setStats] = useState({
     pages_stored: 0, domains_indexed: 0, jobs_total: 0,
     schedules_total: 0, changes_detected: 0, versions_stored: 0,
-    pages_with_structured_data: 0,
+    pages_with_structured_data: 0, documents_stored: 0, document_chars_indexed: 0,
   });
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function refresh() {
     try {
-      const [status, jobData, pageData, scheduleData, changeData] = await Promise.all([
+      const [status, jobData, pageData, scheduleData, changeData, documentData] = await Promise.all([
         request("/api/v1/web-intelligence/status"),
         request("/api/v1/web-intelligence/jobs"),
         request("/api/v1/web-intelligence/pages"),
         request("/api/v1/web-intelligence/schedules"),
         request("/api/v1/web-intelligence/changes?limit=30"),
+        request("/api/v1/web-intelligence/documents"),
       ]);
       setStats(status);
       setJobs(jobData.items ?? []);
       setPages(pageData.items ?? []);
       setSchedules(scheduleData.items ?? []);
       setChanges(changeData.items ?? []);
+      setDocuments(documentData.items ?? []);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Unable to load web intelligence");
     }
@@ -84,6 +94,56 @@ export default function WebIntelligence() {
     const poll = window.setInterval(() => { void refresh(); }, 30000);
     return () => window.clearInterval(poll);
   }, []);
+
+  async function uploadDocument(file?: File) {
+    if (!file) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const data = await request("/api/v1/web-intelligence/documents", {
+        method: "POST", body: form,
+      });
+      setNotice("Document indexed: " + data.document.filename + " · " + data.document.extracted_chars + " extracted characters.");
+      await refresh();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Document extraction failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function searchDocuments() {
+    if (documentQuery.trim().length < 2) return;
+    setBusy(true);
+    try {
+      const data = await request("/api/v1/web-intelligence/documents/search?q=" + encodeURIComponent(documentQuery));
+      setDocumentResults(data.items ?? []);
+      setNotice(data.count + " matching document(s) · " + data.method);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Document search failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rememberDocument(documentId: number) {
+    setBusy(true);
+    try {
+      const data = await request("/api/v1/web-intelligence/documents/" + documentId + "/remember", {
+        method: "POST",
+      });
+      setNotice(data.status === "already_in_memory"
+        ? "Document is already in JPAI memory."
+        : "Document added to JPAI memory with provenance.");
+      await refresh();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Document memory ingestion failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function start() {
     if (!url.trim()) return;
@@ -205,6 +265,7 @@ export default function WebIntelligence() {
       <article className="metric"><span>MONITORING PLANS</span><strong>{stats.schedules_total}</strong><small>Persistent schedules</small></article>
       <article className="metric"><span>CHANGES DETECTED</span><strong>{stats.changes_detected}</strong><small>Content-change events</small></article>
       <article className="metric"><span>STRUCTURED SOURCES</span><strong>{stats.pages_with_structured_data}</strong><small>Pages with JSON-LD metadata</small></article>
+      <article className="metric"><span>DOCUMENTS INDEXED</span><strong>{stats.documents_stored}</strong><small>{stats.document_chars_indexed.toLocaleString()} extracted characters</small></article>
     </div>
     <div className="overview-grid">
       <article className="panel">
@@ -244,6 +305,51 @@ export default function WebIntelligence() {
         </div></article>)}
       </article>
     </div>
+
+    <div className="section-title"><div><span className="eyebrow">DOCUMENT INTELLIGENCE</span><h2>Research files & knowledge extraction</h2></div>
+      <span className="muted">{documents.length} indexed documents</span></div>
+    <div className="overview-grid">
+      <article className="panel">
+        <h3>Import research documents</h3>
+        <p>Upload PDF, DOCX, TXT, Markdown or CSV files. JPAI extracts text locally, stores a SHA-256 fingerprint and indexes the content for research.</p>
+        <div className="field"><label>Choose document · maximum 20 MB</label>
+          <input type="file" accept=".pdf,.docx,.txt,.md,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv"
+            disabled={busy} onChange={(event) => {
+              const file = event.target.files?.[0];
+              void uploadDocument(file);
+              event.target.value = "";
+            }}/></div>
+        <p className="muted">PDF extraction is text-based; scanned image-only PDFs require OCR, which is not yet enabled. Encrypted documents are rejected.</p>
+      </article>
+      <article className="panel">
+        <h3>Search document knowledge</h3>
+        <p>Search extracted document text with local weighted keyword relevance.</p>
+        <div className="search-row">
+          <input value={documentQuery} onChange={(event) => setDocumentQuery(event.target.value)}
+            onKeyDown={(event) => { if (event.key === "Enter") void searchDocuments(); }}
+            placeholder="Search PDFs, reports and documents…"/>
+          <button className="outline-btn" disabled={busy || documentQuery.trim().length < 2} onClick={() => void searchDocuments()}>Search</button>
+        </div>
+        {documentResults.map((item) => <article className="memory-item" key={item.id}>
+          <div><span className="eyebrow">{item.file_type.toUpperCase()} · RELEVANCE {item.relevance}</span>
+            <h4>{item.filename}</h4><p>{item.excerpt}</p>
+            <small>SHA-256 · {item.content_hash.slice(0, 24)}…</small>
+            <button className="text-btn" disabled={busy || !!item.memory_id} onClick={() => void rememberDocument(item.id)}>
+              {item.memory_id ? "✓ Added to JPAI memory" : "Add to JPAI memory"}</button>
+          </div></article>)}
+      </article>
+    </div>
+    <div className="panel task-list">{documents.length ? documents.map((document) =>
+      <article className="task-row" key={document.id}><div className="task-main">
+        <b>{document.filename}</b><small>{document.file_type.toUpperCase()} · {document.extracted_chars.toLocaleString()} characters
+          {document.page_count ? " · " + document.page_count + " pages" : ""}</small>
+        <small>Imported {new Date(document.uploaded_at).toLocaleString()}</small>
+        <small>SHA-256 · {document.content_hash}</small>
+        <span className="task-state">{document.memory_id ? "IN JPAI MEMORY" : "INDEXED LOCALLY"}</span>
+      </div><button className="outline-btn" disabled={busy || !!document.memory_id}
+        onClick={() => void rememberDocument(document.id)}>
+        {document.memory_id ? "Added to memory" : "Add to memory"}</button></article>
+    ) : <p className="muted">Uploaded research documents will appear here with extraction details and source fingerprints.</p>}</div>
 
     <div className="section-title"><div><span className="eyebrow">AUTOMATED COLLECTION</span><h2>Monitoring schedules</h2></div>
       <span className="muted">{schedules.length} saved plans</span></div>
