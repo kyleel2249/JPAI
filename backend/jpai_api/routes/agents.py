@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from jpai_api.agents.professional_catalog import AGENT_BLUEPRINTS, CATEGORIES, PROFESSIONAL_IDENTITY
 from jpai_api.agents.store import AgentStore
 from jpai_api.intelligence.runtime import ModelNotFound, RuntimeUnavailable
+from jpai_api.intelligence.model_fabric import ModelFabricError
 from jpai_api.intelligence.persistence import IntelligenceStore
 from jpai_api.routes.intelligence import get_service
 from jpai_api.routes.model_fabric import get_fabric
@@ -323,17 +324,11 @@ async def run_task(task_id: int):
         store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
         store.event(task_id, task["agent_id"], "task.failed", {"reason": "local_runtime_unavailable"})
         raise HTTPException(status_code=503, detail="local_runtime_unavailable") from exc
-    except Exception as exc:
-        from jpai_api.intelligence.model_fabric import ModelFabricError
-        if isinstance(exc, ModelFabricError):
-            store.set_task_status(task_id, "failed", error_code="provider_inference_failed")
-            store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
-            store.event(task_id, task["agent_id"], "task.failed", {"reason": "provider_inference_failed"})
-            raise HTTPException(status_code=502, detail="provider_inference_failed") from exc
-        store.set_task_status(task_id, "failed", error_code="internal_execution_error")
+    except ModelFabricError as exc:
+        store.set_task_status(task_id, "failed", error_code="provider_inference_failed")
         store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
-        store.event(task_id, task["agent_id"], "task.failed", {"reason": "internal_execution_error"})
-        raise HTTPException(status_code=500, detail="agent_execution_failed") from exc
+        store.event(task_id, task["agent_id"], "task.failed", {"reason": "provider_inference_failed"})
+        raise HTTPException(status_code=502, detail="provider_inference_failed") from exc
     except Exception as exc:
         store.set_task_status(task_id, "failed", error_code="internal_execution_error")
         store.record_result(task["agent_id"], False, round((time.perf_counter() - started) * 1000, 2))
