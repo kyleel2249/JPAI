@@ -4,77 +4,56 @@
 
 JPAI is a modular intelligence platform designed to coordinate specialist AI agents, local tools, knowledge, projects and optional external providers through a governed runtime.
 
-## Project principles
+## Principles
+- Local-first core; external API keys are optional.
+- Provider-neutral adapters and modular domain boundaries.
+- Roles, agents, models and tools are distinct entities.
+- Least privilege, explicit approvals and auditable execution.
+- Evidence-based phase completion; no unverified completion claims.
 
-- **Local-first:** the core application must start and provide useful local functionality without external API keys.
-- **Provider-neutral:** external AI and data providers are optional adapters behind a common gateway.
-- **Modular:** capability domains remain isolated behind documented interfaces.
-- **Governed autonomy:** agents operate with explicit permissions, auditable actions and approval gates for consequential operations.
-- **Verifiable:** features are not considered complete until tests and acceptance criteria demonstrate them.
-- **Secure by default:** secrets stay out of source control, logs and client bundles.
-
-## Phase 1 scope
-
-Phase 1 establishes the repository structure, backend application shell, frontend application shell, configuration, health diagnostics, test harness and architecture documentation. It does not claim to deliver the later agent workforce, external API integrations, trading execution, creative generation or autonomous operations.
+## Current delivery
+- **Phase 1:** repository and application foundation, FastAPI health API, React/TypeScript shell, configuration and architecture baseline.
+- **Phase 2:** local intelligence adapter, Ollama loopback runtime integration, model discovery, capability selection, inference and benchmark API, plus dashboard controls. Runtime verification remains pending.
 
 ## Planned architecture
-
-- Backend: Python, FastAPI, Pydantic settings.
-- Frontend: React, TypeScript and Vite.
-- API contract: versioned REST endpoints; WebSocket capabilities will be introduced when required.
-- Persistence: repository interfaces first; a local SQLite implementation will be introduced with the persistence phase.
-- Runtime: local development first, with packaging targets for desktop and Android addressed in later phases.
-- Testing: pytest for backend; Vitest/Testing Library for frontend.
-
-Technology choices are replaceable behind interfaces. Do not couple core domain logic to a single model provider, database, operating system or deployment vendor.
+Backend: Python/FastAPI. Frontend: React/TypeScript/Vite. Local model runtime: provider-neutral adapter with Ollama as the first implementation. Persistence and knowledge services will be added behind repository interfaces. Desktop and Android packaging are later roadmap phases.
 
 ## Repository map
-
 ```text
-backend/       FastAPI application and core runtime
+backend/       FastAPI application and local intelligence services
 frontend/      React + TypeScript user interface
 docs/          Architecture, governance and phase specifications
 scripts/       Developer utilities
 ```
 
-## Development setup
-
-### Backend
-
-Requires Python 3.11 or newer.
-
+## Backend setup
+Requires Python 3.11+.
 ```bash
 python -m venv .venv
-# Windows PowerShell:
-.venv\Scripts\Activate.ps1
-# macOS/Linux:
-source .venv/bin/activate
+# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 pip install -e ".[dev]"
 uvicorn jpai_api.main:app --reload --app-dir backend
 ```
+API docs: http://127.0.0.1:8000/docs
+Health: http://127.0.0.1:8000/api/v1/health
 
-Health endpoint: `http://127.0.0.1:8000/api/v1/health`
-
-### Frontend
-
-Requires Node.js 20 or newer.
-
+## Frontend setup
+Requires Node.js 20+.
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+Configure `VITE_API_BASE_URL` using `frontend/.env.example`.
 
-The frontend uses `VITE_API_BASE_URL` to locate the backend. See `frontend/.env.example`.
+## Local model runtime
+Install and start Ollama separately, then pull a model using Ollama's own trusted installer/CLI. JPAI connects only to a loopback runtime by default:
+```text
+JPAI_OLLAMA_BASE_URL=http://127.0.0.1:11434
+JPAI_MODEL_TIMEOUT_SECONDS=90
+```
+JPAI does not download models automatically. No model or Ollama installation is bundled with this repository.
 
-## Security notes
-
-- Never commit API keys, passwords, private keys, tokens, local databases or personal data.
-- Use environment variables for development-only configuration and a protected OS credential store in packaged applications.
-- Bind development services to loopback by default.
-- Do not expose execution, filesystem or shell tools to agents without explicit policy enforcement and sandboxing.
-- Treat external content as untrusted input.
-
-## Status
-
-Phase 1 is under implementation. The roadmap and acceptance criteria live in `docs/`. A phase is only complete after its implementation, automated tests, security review, recovery checks and documentation are verified.
+## Security
+Never commit credentials, tokens, private keys, local databases or personal data. Development binds to loopback. Do not expose shell, filesystem, trading or publishing tools to agents without policy enforcement, sandboxing and approval controls.
