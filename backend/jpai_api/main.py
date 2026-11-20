@@ -1,4 +1,9 @@
 """FastAPI application entry point."""
+import asyncio
+import logging
+import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,10 +16,37 @@ from jpai_api.routes.intelligence import router as intelligence_router
 from jpai_api.routes.memory import router as memory_router
 from jpai_api.routes.quality import router as quality_router
 from jpai_api.routes.routing import router as routing_router
-from jpai_api.routes.web_intelligence import router as web_intelligence_router
+from jpai_api.routes.web_intelligence import get_crawler, router as web_intelligence_router
+
+logger = logging.getLogger(__name__)
+
+
+async def _web_intelligence_scheduler():
+    while True:
+        try:
+            await asyncio.to_thread(get_crawler().run_due_schedules, 3)
+        except Exception:
+            logger.exception("JPAI web-intelligence scheduler iteration failed")
+        await asyncio.sleep(30)
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    enabled = os.getenv("JPAI_WEB_INTELLIGENCE_SCHEDULER_ENABLED", "true").lower() not in {"0", "false", "no"}
+    task = asyncio.create_task(_web_intelligence_scheduler()) if enabled else None
+    try:
+        yield
+    finally:
+        if task:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
 settings = get_settings()
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.app_name,
     version="0.4.0",
     description="Local-first personal, professional and enterprise intelligence platform",
