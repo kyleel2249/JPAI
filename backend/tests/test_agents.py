@@ -92,3 +92,55 @@ def test_paused_agent_cannot_receive_tasks(monkeypatch, tmp_path):
         "agent_id": "fullstack_engineer",
     })
     assert response.status_code == 409
+
+class FakeModel:
+    id = "test-local-model"
+
+
+class FakeService:
+    async def discover(self):
+        return [FakeModel()]
+
+    async def select(self, capability, preferred_provider=None):
+        assert capability == "chat"
+        return FakeModel()
+
+    async def infer(self, model, prompt, system, temperature):
+        return {
+            "model": model,
+            "provider": "test",
+            "response": "Structured specialist analysis.",
+            "duration_ms": 2.0,
+        }
+
+
+def test_low_risk_task_runs_through_local_model_and_records_result(monkeypatch, tmp_path):
+    reset_store(monkeypatch, tmp_path)
+    monkeypatch.setattr(agent_routes, "get_service", lambda: FakeService())
+    created = client.post("/api/v1/agents/tasks", json={
+        "title": "Review API design",
+        "prompt": "Review this API design and propose maintainability improvements.",
+        "agent_id": "fullstack_engineer",
+    })
+    task_id = created.json()["id"]
+    completed = client.post(f"/api/v1/agents/tasks/{task_id}/run")
+    assert completed.status_code == 200
+    assert completed.json()["status"] == "completed"
+    assert completed.json()["result"] == "Structured specialist analysis."
+    scorecards = client.get("/api/v1/agents/scorecards").json()["items"]
+    engineer = next(item for item in scorecards if item["id"] == "fullstack_engineer")
+    assert engineer["completed"] == 1
+
+
+def test_agent_council_returns_independent_specialist_contributions(monkeypatch, tmp_path):
+    reset_store(monkeypatch, tmp_path)
+    monkeypatch.setattr(agent_routes, "get_service", lambda: FakeService())
+    response = client.post("/api/v1/agents/council", json={
+        "prompt": "Assess the architecture and delivery risks for a local-first AI platform.",
+        "agent_ids": ["chief_architect", "fullstack_engineer"],
+    })
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "completed"
+    assert payload["contribution_count"] == 2
+    assert payload["governance"] == "analysis_only_no_external_actions"
