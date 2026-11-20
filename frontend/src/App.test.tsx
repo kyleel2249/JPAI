@@ -27,8 +27,6 @@ describe("JPAI command centre", () => {
     expect(screen.getByRole("heading", { name: /memory & knowledge/i })).toBeTruthy();
     expect(screen.getByText(/capture a memory/i)).toBeTruthy();
   });
-});
-
 
   it("opens the quality governance workspace", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
@@ -41,3 +39,4 @@ describe("JPAI command centre", () => {
     expect(screen.getByRole("heading", { name: /issue resolution protocol/i })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /root-cause governance/i })).toBeTruthy();
   });
+});
